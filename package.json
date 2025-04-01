@@ -5,9 +5,13 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js"
+        "start": "node src/index.js"
     },
     "repository": "https://github.com/ngareleo/repo-understanding.git",
     "author": "ngarimwenda@gmail.com <ngarimwenda@gmail.com>",
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies": {
+        "dotenv": "^16.4.7",
+        "openai": "^4.91.0"
+    }
 }

@@ -1,0 +1,3 @@
+[submodule "sample/control-tower"]
+	path = sample/control-tower
+	url = https://github.com/ngareleo/control-tower.git
