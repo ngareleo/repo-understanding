@@ -10,8 +10,8 @@ export async function get_file_structure(pathToFile) {
         new DirectoryWalk()
             .on("err", (err) => reject(err))
             .on("found", (file) => files.push(file[0]))
-            .on("finish", () => resolve(files))
-            .walk(pathToFile);
+            .walkSync(pathToFile);
+        resolve(files.join("\n"));
     });
 }
 

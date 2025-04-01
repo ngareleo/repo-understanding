@@ -29,7 +29,7 @@ export class DirectoryWalk extends EventEmitter {
      * @param {string} dirPath - The path to the directory to walk
      * @param {function():void} onFinish - A callback to be executed when completed walking a directory
      */
-    walk(dirPath) {
+    walkSync(dirPath) {
         let paths;
         try {
             paths = readdirSync(dirPath);
@@ -39,20 +39,18 @@ export class DirectoryWalk extends EventEmitter {
 
         for (const item of paths) {
             const itemPath = join(dirPath, item);
-            let stats;
+            let stat;
 
             try {
-                stats = statSync(itemPath);
+                stat = statSync(itemPath);
             } catch (e) {
                 this.emit("error", err);
             }
 
-            this.emit("found", [itemPath, stats]);
-            if (stats.isDirectory()) {
-                this.walk(itemPath);
+            this.emit("found", [itemPath, stat]);
+            if (stat.isDirectory()) {
+                this.walkSync(itemPath);
             }
         }
-
-        this.emit("finish");
     }
 }

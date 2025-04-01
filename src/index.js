@@ -8,7 +8,7 @@ import { get_file_structure, read_file } from "./tools.js";
  * @param {string} input The prompt passed to the LLM
  * @returns
  */
-const llmTurn = async (input) => {
+async function llmTurn(input) {
     const apiKey = process.env.OPENAI_KEY;
     const client = new OpenAI({ apiKey });
     const response = await client.responses.create({
@@ -19,9 +19,9 @@ const llmTurn = async (input) => {
     const json = JSON.parse(response.output_text);
     console.info("llmTurn, ", JSON.stringify(json, null, 2));
     return json;
-};
+}
 
-const startConversation = async () => {
+async function startConversation() {
     const pathToRepo = process.argv[2];
     const openingPrompt = Get_Prompt(pathToRepo);
     let readyToGenerate = false;
@@ -61,12 +61,18 @@ const startConversation = async () => {
         }
     }
 
-    console.log(JSON.stringify(out, null, 2));
-};
+    const secondTurn = await llmTurn();
 
-startConversation().catch((e) =>
-    console.error(
-        "Error when executing startConversation ",
-        JSON.stringify(e, null, 2)
-    )
-);
+    console.log(JSON.stringify(out, null, 2));
+}
+
+function main() {
+    startConversation().catch((e) =>
+        console.error(
+            "Error when executing startConversation ",
+            JSON.stringify(e, null, 2)
+        )
+    );
+}
+
+main();
