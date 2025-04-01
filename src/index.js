@@ -28,28 +28,45 @@ const startConversation = async () => {
 
     const output = await llmTurn(openingPrompt);
     const commands = output["commands"];
+    let out = [];
 
-    for (const command of commands) {
+    for (const [index, command] of commands.entries()) {
         switch (command["utility-name"]) {
             case "ready": {
                 readyToGenerate = true;
+                out.push({ index, cmd: "ready" });
                 break;
             }
             case "get_file_structure": {
-                get_file_structure(command["args"][0]);
+                const value = await get_file_structure(command["args"][0]);
+                out.push({
+                    index,
+                    cmd: "get_file_structure",
+                    value,
+                });
+                break;
             }
             case "read_file": {
-                read_file(command["args"][0]);
+                const value = await read_file(command["args"][0]);
+                out.push({
+                    index,
+                    cmd: "read_file",
+                    value,
+                });
+                break;
             }
             default: {
                 console.error("Invalid utility from LLM ", command);
             }
         }
     }
+
+    console.log(JSON.stringify(out, null, 2));
 };
 
-const main = async () => {
-    return startConversation();
-};
-
-main().catch((e) => console.error("Main execution failed with error ", e));
+startConversation().catch((e) =>
+    console.error(
+        "Error when executing startConversation ",
+        JSON.stringify(e, null, 2)
+    )
+);

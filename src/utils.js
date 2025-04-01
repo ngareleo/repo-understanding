@@ -1,50 +1,58 @@
-import { readdir, stat } from "fs";
+import EventEmitter from "events";
+import { readFile, readdirSync, statSync } from "fs";
 import { join } from "path";
-import { readFile } from "fs/promises";
 
 /**
  * Reads the content of a file at the given path.
  *
  * @param {string} pathToFile - The path to the file to read.
+ * @param {function(Error, string)} cb - A callback that takes `contents` when contents of file are available
  * @returns {string} - A promise that resolves with the file content.
  */
-export async function readFileContent(pathToFile) {
-    try {
-        const content = await readFile(pathToFile, "utf-8");
-        return content;
-    } catch (err) {
-        console.error(`Error reading file at ${pathToFile}:`, err);
-        throw err;
-    }
+export function readFileContent(pathToFile, cb) {
+    readFile(pathToFile, "utf-8", (err, data) => {
+        if (err) {
+            console.error(err);
+            cb(err, undefined);
+        }
+        cb(null, data);
+    });
 }
 
-/**
- * Recursively walks through a directory and its subdirectories.
- *
- * @param {string} dirPath - The path to the directory to walk.
- * @param {function(string, import('fs').Stats): void} cb - A callback function invoked for each file or directory found.
- */
-export function walkDirectory(dirPath, cb) {
-    readdir(dirPath, (err, items) => {
-        if (err) {
-            console.error("Error reading directory:", err);
-            return;
+export class DirectoryWalk extends EventEmitter {
+    constructor() {
+        super();
+    }
+
+    /**
+     * Recursively walks through a directory and its subdirectories.
+     * @param {string} dirPath - The path to the directory to walk
+     * @param {function():void} onFinish - A callback to be executed when completed walking a directory
+     */
+    walk(dirPath) {
+        let paths;
+        try {
+            paths = readdirSync(dirPath);
+        } catch (e) {
+            this.emit("error", e);
         }
 
-        items.forEach((item) => {
+        for (const item of paths) {
             const itemPath = join(dirPath, item);
-            stat(itemPath, (err, stats) => {
-                if (err) {
-                    console.error(`Error accessing ${itemPath}:`, err);
-                    return;
-                }
+            let stats;
 
-                cb(itemPath, stats);
+            try {
+                stats = statSync(itemPath);
+            } catch (e) {
+                this.emit("error", err);
+            }
 
-                if (stats.isDirectory()) {
-                    walkDirectory(itemPath, cb);
-                }
-            });
-        });
-    });
+            this.emit("found", [itemPath, stats]);
+            if (stats.isDirectory()) {
+                this.walk(itemPath);
+            }
+        }
+
+        this.emit("finish");
+    }
 }
