@@ -1,6 +1,8 @@
 import "dotenv/config";
-import mainPrompt from "./prompt.js";
+import Get_MainPrompt from "./prompt.js";
 import OpenAI from "openai";
+
+const pathToRepo = process.argv[2];
 
 (async () => {
     const apiKey = process.env.OPENAI_KEY;
@@ -9,7 +11,7 @@ import OpenAI from "openai";
 
     const response = await client.responses.create({
         model: "gpt-4o",
-        input: mainPrompt,
+        input: Get_MainPrompt(pathToRepo),
     });
 
     console.log(response.output_text);
