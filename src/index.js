@@ -1,7 +1,7 @@
 import "dotenv/config";
 import OpenAI from "openai";
 import Get_Prompt from "./prompt.js";
-import { get_file_structure } from "./tools.js";
+import { get_file_structure, read_file } from "./tools.js";
 
 /**
  * Executes one round trip to OPENAI LLM
@@ -26,25 +26,26 @@ const startConversation = async () => {
     const openingPrompt = Get_Prompt(pathToRepo);
     let readyToGenerate = false;
 
-    // while (!readyToGenerate) {
     const output = await llmTurn(openingPrompt);
     const commands = output["commands"];
 
-    switch (output["utility-name"]) {
-        case "ready": {
-            readyToGenerate = true;
-            break;
-        }
-        case "get_file_structure": {
-            get_file_structure(output[""]);
-        }
-        case "read_file": {
-        }
-        default: {
+    for (const command of commands) {
+        switch (command["utility-name"]) {
+            case "ready": {
+                readyToGenerate = true;
+                break;
+            }
+            case "get_file_structure": {
+                get_file_structure(command["args"][0]);
+            }
+            case "read_file": {
+                read_file(command["args"][0]);
+            }
+            default: {
+                console.error("Invalid utility from LLM ", command);
+            }
         }
     }
-
-    // }
 };
 
 const main = async () => {

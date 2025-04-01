@@ -7,9 +7,10 @@ import { readFileContent, walkDirectory } from "./utils.js";
 export function get_file_structure(pathToFile) {
     let files = [];
     walkDirectory(pathToFile, (path, _) => {
-        files = [...files, path];
+        files.push(path);
     });
-    return files.reduce((prev, curr) => (prev += "\n" + curr));
+    console.log({ files });
+    return files.reduce("", (prev, curr) => (prev += "\n" + curr));
 }
 
 export function read_file(pathToFile) {
