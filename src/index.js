@@ -110,6 +110,16 @@ async function startConversation() {
             }
         }
 
+        /**
+         * MASSIVE TODO
+         *
+         * Figure out how we can have a `SETUP prompt` to set base
+         * `UPDATE prompt` that decides whether to continue or end the execution
+         *
+         *
+         * Todo: Figure out setup-update prompt relationship. (How to best structure it?)
+         * Todo: Write setup prompt
+         */
         console.log(JSON.stringify(out, null, 2));
     }
 }
