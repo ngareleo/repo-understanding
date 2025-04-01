@@ -1,0 +1,13 @@
+{
+    "name": "repo-understanding",
+    "version": "1.0.0",
+    "description": "An agent that helps onboard you to a new repository",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "repository": "https://github.com/ngareleo/repo-understanding.git",
+    "author": "ngarimwenda@gmail.com <ngarimwenda@gmail.com>",
+    "license": "MIT"
+}
