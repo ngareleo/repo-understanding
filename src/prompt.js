@@ -18,17 +18,18 @@ const Get_Prompt = (pathToRepo) => `
 
 <output>
 - The output should follow the following schema
-<output-schema>
-    <status> An indication of the status. Can be "OKAY" or "ERROR" depending your ability to execute the task</status>
-    <message>
-    - An optional property you can pass a message.
-    - Incase status is "ERROR" you must provide the reason here
-    </message>
-    <commands>
-    - A list of utilities you chose to invoke. They must follow this schema
-        <utility-name>The utility you want to invoke</utility-name>
-        <args>A list of argument values to pass. **Order matters**</args>
-    </commands>
+    <output-schema>
+        <status> An indication of the status. Can be "OKAY" or "ERROR" depending your ability to execute the task</status>
+        <message>
+        - Use this field to pass back a message.
+        - Incase status is "ERROR" you **MUST** provide the reason here
+        </message>
+        <commands>
+        - A list of utilities you chose to invoke. They must follow this schema
+            <utility-name>The utility you want to invoke</utility-name>
+            <args>A list of argument values to pass. **Order matters**</args>
+        </commands>
+    <output-schema>
 </output>
 
 <examples>
