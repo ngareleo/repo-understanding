@@ -8,10 +8,9 @@ const getLLMExecution = () => {
     const client = new OpenAI({ apiKey });
 
     // Internal state
-    let history = [];
+    const history = [];
     let turnCount = 0;
     let executing = true;
-    let currentConversationId = undefined;
 
     /**
      * Creates a new conversation and sets the current conversation ID.
@@ -22,8 +21,9 @@ const getLLMExecution = () => {
     const newConversation = (props) => {
         currentConversationId = props.conversationId;
         history.push({
-            index: history.length + 1,
+            index: turnCount++,
             conversationId: props.conversationId,
+            json: props.json,
         });
     };
 
@@ -42,38 +42,79 @@ const getLLMExecution = () => {
     const llmTurn = async (input) => {
         const response = await client.responses.create({
             model: "gpt-4o",
-            ...(input
-                ? { input }
-                : { previous_response_id: currentConversationId }),
+            // ...(currentConversationId
+            //     ? { previous_response_id: currentConversationId }
+            //     : {}),
+            input,
             text: { format: { type: "json_object" } },
         });
-        newConversation({ conversationId: response.id });
         const json = JSON.parse(response.output_text);
+        newConversation({ conversationId: response.id, json });
         console.info("llmTurn, ", JSON.stringify(json, null, 2));
         return json;
     };
 
-    return { llmTurn, quitConveration, turnCount, executing };
+    return { llmTurn, quitConveration, turnCount, executing, history };
 };
 
-async function startConversation() {
-    const pathToRepo = process.argv[2];
-    const openingPrompt = Get_Prompt(pathToRepo);
-    const { llmTurn, quitConveration, turnCount, executing } =
+async function startConversation(pathToRepo, userMessage) {
+    const instructions = Get_Prompt(pathToRepo);
+    const { llmTurn, quitConveration, turnCount, executing, history } =
         getLLMExecution();
+    const conversationStarters = [
+        { role: "developer", content: instructions },
+        { role: "user", content: userMessage },
+    ];
+    const internalExectutionResults = [];
+    const getConversationHistory = () => {
+        const previousMessages = internalExectutionResults.map(
+            (result, index) => [
+                { role: "assistant", content: history[index] },
+                { role: "user", content: result },
+            ]
+        );
+        return [...conversationStarters, ...previousMessages];
+    };
+    const closeConversation = async () => {
+        const content = await llmTurn([
+            ...getConversationHistory(),
+            {
+                role: "developer",
+                content:
+                    "Now that you have enough context. Answer the users questions with utmost clarity",
+            },
+        ]);
+        return content;
+    };
 
-    while (executing) {
-        const output = await llmTurn(openingPrompt);
-        const commands = output["commands"];
+    do {
+        const previousMessages = internalExectutionResults.map(
+            (result, index) => [
+                { role: "assistant", content: history[index] },
+                { role: "user", content: result },
+            ]
+        );
+        // Hand-off user message to LLM
+        const content = await llmTurn(getConversationHistory());
 
         /**
          * Temporary lock while building
          */
         if (turnCount == 1) {
             quitConveration();
+            break;
         }
 
-        let out = [];
+        if (content["indicator"] === "READY") {
+            quitConveration();
+            const finalResponse = await closeConversation();
+            console.log({ finalResponse });
+            break;
+        }
+
+        const commands = content["commands"];
+        const turnOutput = [];
+
         /**
          * We will build an execution loop of thought for the LLM by chaining messages
          * We will provide the LLM with an objective and it will decide whether it has finished said task
@@ -83,12 +124,12 @@ async function startConversation() {
             switch (command["utility-name"]) {
                 case "ready": {
                     readyToGenerate = true;
-                    out.push({ index, cmd: "ready" });
+                    turnOutput.push({ index, cmd: "ready" });
                     break;
                 }
                 case "get_file_structure": {
                     const value = await get_file_structure(command["args"][0]);
-                    out.push({
+                    turnOutput.push({
                         index,
                         cmd: "get_file_structure",
                         value,
@@ -97,7 +138,7 @@ async function startConversation() {
                 }
                 case "read_file": {
                     const value = await read_file(command["args"][0]);
-                    out.push({
+                    turnOutput.push({
                         index,
                         cmd: "read_file",
                         value,
@@ -110,22 +151,15 @@ async function startConversation() {
             }
         }
 
-        /**
-         * MASSIVE TODO
-         *
-         * Figure out how we can have a `SETUP prompt` to set base
-         * `UPDATE prompt` that decides whether to continue or end the execution
-         *
-         *
-         * Todo: Figure out setup-update prompt relationship. (How to best structure it?)
-         * Todo: Write setup prompt
-         */
-        console.log(JSON.stringify(out, null, 2));
-    }
+        internalExectutionResults.push(turnOutput);
+    } while (executing);
 }
 
 function main() {
-    startConversation().catch((e) =>
+    startConversation(
+        "samples/control-tower",
+        "What is the purpose of this repo?"
+    ).catch((e) =>
         console.error(
             "Error when executing startConversation ",
             JSON.stringify(e, null, 2)

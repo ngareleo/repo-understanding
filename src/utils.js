@@ -27,7 +27,6 @@ export class DirectoryWalk extends EventEmitter {
     /**
      * Recursively walks through a directory and its subdirectories.
      * @param {string} dirPath - The path to the directory to walk
-     * @param {function():void} onFinish - A callback to be executed when completed walking a directory
      */
     walkSync(dirPath) {
         let paths;
