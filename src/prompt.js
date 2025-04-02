@@ -1,8 +1,9 @@
 /**
- * @param {string} pathToRepo
- * @returns
+ * The opening prompt informs the LLM of its ability and sets up reasoning
+ * @param {string} pathToRepo. Path to the repo for inspection
+ * @returns The prompt
  */
-const Get_Prompt = (pathToRepo) => `
+export const Get_SystemPrompt = (pathToRepo) => `
 <instructions>
 - You're are presented with a new repository at directory path '${pathToRepo}'. 
 - Your task is to generate documentation on the repository for someone who has never worked on the repository
@@ -65,4 +66,19 @@ const Get_Prompt = (pathToRepo) => `
 </examples>
 `;
 
-export default Get_Prompt;
+/**
+ * Closing prompt instructs the LLM regarding quality of response
+ * @returns The prompt
+ */
+export const Get_ClosingPrompt = `
+<instructions>
+- Now that you have enough context to answer the user's question.
+- Your answers should be factual only using answers from the context you've just now collected
+- The answer should be clear
+- The answer should match the user's tone and energy
+</instructions>
+
+<output>
+- The output should be in readable markdown format.
+</output>
+`;
