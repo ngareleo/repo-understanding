@@ -19,7 +19,6 @@ const getLLMExecution = () => {
      * @param {string} props.conversationId - The ID of the conversation to set as current.
      */
     const newConversation = (props) => {
-        currentConversationId = props.conversationId;
         history.push({
             index: turnCount++,
             conversationId: props.conversationId,
@@ -42,9 +41,6 @@ const getLLMExecution = () => {
     const llmTurn = async (input) => {
         const response = await client.responses.create({
             model: "gpt-4o",
-            // ...(currentConversationId
-            //     ? { previous_response_id: currentConversationId }
-            //     : {}),
             input,
             text: { format: { type: "json_object" } },
         });
@@ -88,13 +84,6 @@ async function startConversation(pathToRepo, userMessage) {
     };
 
     do {
-        const previousMessages = internalExectutionResults.map(
-            (result, index) => [
-                { role: "assistant", content: history[index] },
-                { role: "user", content: result },
-            ]
-        );
-        // Hand-off user message to LLM
         const content = await llmTurn(getConversationHistory());
 
         /**
