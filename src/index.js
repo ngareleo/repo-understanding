@@ -33,13 +33,20 @@ async function startConversation(pathToRepo, userMessage) {
             console.error("Error in execute --> ", { e });
         }
     };
-
     const getConversationHistory = () => {
-        const previousMessages = conversationHistory.map(
-            ({ content, turnExecutionResults }) => [
-                { role: "assistant", content },
-                { role: "user", content: turnExecutionResults },
-            ]
+        const previousMessages = conversationHistory.reduce(
+            (prev, { content, turnExecutionResults }) => [
+                ...prev,
+                {
+                    role: "assistant",
+                    content: JSON.stringify(content, null, 2),
+                },
+                {
+                    role: "user",
+                    content: JSON.stringify(turnExecutionResults, null, 2),
+                },
+            ],
+            []
         );
         return [...conversationStarters, ...previousMessages];
     };
@@ -58,7 +65,13 @@ async function startConversation(pathToRepo, userMessage) {
         executing = true;
         return content;
     };
+    const quitConveration = () => {
+        executing = false;
+    };
 
+    /**
+     * The execution loop allows chain of thought
+     */
     do {
         const content = await execute(getConversationHistory());
 
@@ -117,11 +130,6 @@ function main() {
     startConversation(
         "sample/control-tower",
         "What is the purpose of this repo?"
-    ).catch((e) =>
-        console.error(
-            "Error when executing startConversation ",
-            JSON.stringify(e, null, 2)
-        )
     );
 }
 
