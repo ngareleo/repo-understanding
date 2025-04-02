@@ -61,9 +61,9 @@ async function startConversation(pathToRepo, userMessage) {
         { role: "developer", content: instructions },
         { role: "user", content: userMessage },
     ];
-    const internalExectutionResults = [];
+    const internalExecutionResults = [];
     const getConversationHistory = () => {
-        const previousMessages = internalExectutionResults.map(
+        const previousMessages = internalExecutionResults.map(
             (result, index) => [
                 { role: "assistant", content: history[index] },
                 { role: "user", content: result },
@@ -104,11 +104,6 @@ async function startConversation(pathToRepo, userMessage) {
         const commands = content["commands"];
         const turnOutput = [];
 
-        /**
-         * We will build an execution loop of thought for the LLM by chaining messages
-         * We will provide the LLM with an objective and it will decide whether it has finished said task
-         * The loop will then end
-         */
         for (const [index, command] of commands.entries()) {
             switch (command["utility-name"]) {
                 case "ready": {
@@ -140,7 +135,7 @@ async function startConversation(pathToRepo, userMessage) {
             }
         }
 
-        internalExectutionResults.push(turnOutput);
+        internalExecutionResults.push(turnOutput);
     } while (executing);
 }
 
