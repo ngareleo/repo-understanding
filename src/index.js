@@ -4,34 +4,43 @@ import { Get_ClosingPrompt, Get_SystemPrompt } from "./prompt.js";
 import { get_file_structure, read_file } from "./tools.js";
 
 async function startConversation(pathToRepo, userMessage) {
-    // Setup
     const apiKey = process.env.OPENAI_KEY;
     const client = new OpenAI({ apiKey });
-    const openingPrompt = Get_SystemPrompt(pathToRepo);
+    const mainSystemPrompt = Get_SystemPrompt(pathToRepo);
     const closingPrompt = Get_ClosingPrompt();
-    const conversationStarters = [
-        { role: "developer", content: openingPrompt },
-        { role: "user", content: userMessage },
-    ];
-    const conversationHistory = [];
 
-    // Internal state
+    const conversationStarters = [
+        { role: "developer", content: mainSystemPrompt },
+        { role: "user", content: userMessage },
+        { role: "user", content: "<pass />" },
+    ];
+
+    const conversationHistory = [];
+    const conversationSystemLogs = [];
     let executing = true;
+    let readyToGenerate = false;
     let turnCount = 0;
 
-    const execute = async (input, doLog = true) => {
-        try {
-            const response = await client.responses.create({
-                model: "gpt-4o",
-                input,
-                text: { format: { type: "json_object" } },
-            });
-            const json = JSON.parse(response.output_text);
-            doLog && console.info("execution ", JSON.stringify(json, null, 2));
-            return json;
-        } catch (e) {
-            console.error("Error in execute --> ", { e });
+    const execute = async (messages) => {
+        const response = await client.chat.completions.create({
+            model: "gpt-4o",
+            messages,
+            store: true,
+            response_format: {
+                type: "json_object",
+            },
+        });
+
+        if (response.choices.length == 0) {
+            return undefined;
         }
+
+        const message = response.choices[0].message;
+        console.info({ message });
+        conversationSystemLogs.push({ turnCount, message });
+        turnCount += 1;
+
+        return JSON.parse(message.content);
     };
     const getConversationHistory = () => {
         const previousMessages = conversationHistory.reduce(
@@ -48,74 +57,83 @@ async function startConversation(pathToRepo, userMessage) {
             ],
             []
         );
-        return [...conversationStarters, ...previousMessages];
+        return [
+            ...conversationStarters,
+            ...previousMessages,
+            ...(readyToGenerate
+                ? [
+                      {
+                          role: "user",
+                          content: "<respond />",
+                      },
+                      {
+                          role: "developer",
+                          content: closingPrompt,
+                      },
+                  ]
+                : []),
+        ];
     };
-    const executeClosingConversation = async () => {
-        const content = await execute(
-            [
-                ...getConversationHistory(),
-                {
-                    role: "developer",
-                    content: closingPrompt,
-                },
-            ],
-            false
-        );
-        console.log("Final response ----> ", content);
-        executing = true;
-        return content;
-    };
-    const quitConveration = () => {
-        executing = false;
+    const toggleReadyToGenerate = () => {
+        readyToGenerate = true;
     };
 
     /**
      * The execution loop allows chain of thought
      */
     do {
+        const turnExecutionResults = [];
+
         const content = await execute(getConversationHistory());
 
-        /**
-         * Temporary lock while building
-         */
-        if (!content || turnCount == 1) {
-            quitConveration();
-            break;
+        if (!content) {
+            return;
         }
 
-        /**
-         * The llm has enough context to fulfil task
-         * We execute the closing system prompt
-         */
-        if (content["indicator"] === "READY") {
-            quitConveration();
-            await executeClosingConversation();
+        if (content["final-response"]) {
+            console.log({ finalResponse: content["final-response"] });
             break;
         }
 
         const commands = content["commands"];
-        const turnExecutionResults = [];
 
-        for (const [index, command] of commands.entries()) {
+        for (const command of commands) {
             switch (command["utility-name"]) {
                 case "get_file_structure": {
                     const value = await get_file_structure(command["args"][0]);
-                    turnExecutionResults.push({
-                        index,
-                        cmd: "get_file_structure",
-                        value,
-                    });
+                    turnExecutionResults.push(
+                        `
+                            <reply />
+                             {
+                                cmd: "get_file_structure",
+                                reply: ${JSON.stringify(value, null, 2)}
+                             }
+                            </reply />
+                        `
+                    );
                     break;
                 }
                 case "read_file": {
                     const value = await read_file(command["args"][0]);
-                    turnExecutionResults.push({
-                        index,
-                        cmd: "read_file",
-                        value,
-                    });
+                    turnExecutionResults.push(`
+                            <reply />
+                             {
+                                cmd: "read_file",
+                                reply: ${JSON.stringify(value, null, 2)}
+                             }
+                            </reply />
+                        `);
                     break;
                 }
+                case "pass_token": {
+                    // noop for now
+                    break;
+                }
+                case "ready": {
+                    toggleReadyToGenerate();
+                    break;
+                }
+
                 default: {
                     console.error("Invalid utility from LLM ", command);
                 }
@@ -129,7 +147,7 @@ async function startConversation(pathToRepo, userMessage) {
 function main() {
     startConversation(
         "sample/control-tower",
-        "What is the purpose of this repo?"
+        "What improvements can be done to the repo?"
     );
 }
 
