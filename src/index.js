@@ -115,14 +115,16 @@ async function startConversation(pathToRepo, userMessage) {
                 }
                 case "read_file": {
                     const value = await read_file(command["args"][0]);
-                    turnExecutionResults.push(`
+                    turnExecutionResults.push(
+                        `
                             <reply />
                              {
                                 cmd: "read_file",
                                 reply: ${JSON.stringify(value, null, 2)}
                              }
                             </reply />
-                        `);
+                        `
+                    );
                     break;
                 }
                 case "pass_token": {
