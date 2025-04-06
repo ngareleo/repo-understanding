@@ -148,8 +148,8 @@ async function startConversation(pathToRepo, userMessage) {
 
 function main() {
     startConversation(
-        "sample/control-tower",
-        "What improvements can be done to the repo?"
+        "sample/scrapy",
+        "Give me details of the internal implementation and purpose of this repository. I want to implement such a thing and need to know what concepts I need to understand."
     );
 }
 

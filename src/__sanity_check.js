@@ -1,3 +1,4 @@
+import { Transform, PassThrough, pipeline } from "stream";
 import "dotenv/config";
 import OpenAI from "openai";
 import { Get_SystemPrompt } from "./prompt.js";
@@ -14,14 +15,14 @@ import { Get_SystemPrompt } from "./prompt.js";
  *
  */
 
-(async () => {
+const llmStream = async () => {
     const apiKey = process.env.OPENAI_KEY;
     const client = new OpenAI({ apiKey });
 
     const mainSystemPrompt = Get_SystemPrompt("sample/control-tower");
-    const response = await client.chat.completions.create({
+    const response = await client.responses.create({
         model: "gpt-4o",
-        messages: [
+        input: [
             { role: "developer", content: mainSystemPrompt },
             { role: "user", content: "What is the point of this repo?" },
             { role: "user", content: "<pass />" },
@@ -67,29 +68,53 @@ import { Get_SystemPrompt } from "./prompt.js";
                 </reply>
                 `,
             },
-            // {
-            //     role: "assistant",
-            //     content: `'{\n' +
-            //         '    "status": "OKAY",\n' +
-            //         '    "message": "The repository contains a variety of files including configuration files, source code, tests, and documentation.",\n' +
-            //         '    "commands": [\n' +
-            //         '        { "utility-name": "read_file", "args": ["sample/control-tower/README.md"] },\n' +
-            //         '        { "utility-name": "read_file", "args": ["sample/control-tower/src/index.js"] },\n' +
-            //         '        { "utility-name": "read_file", "args": ["sample/control-tower/package.json"] },\n' +
-            //         '        { "utility-name": "pass_token", "args": [] }\n' +
-            //         '    ]\n' +
-            //         '}`,
-            // },
-            // {
-            //     role: "user",
-            //     content:
-            //         "<message>Why did you respond without a 'Protocol-Messaging-Token? Were the instructions not clear?</message>",
-            // },
         ],
         store: true,
-        response_format: {
-            type: "json_object",
+        stream: true,
+        text: {
+            format: { type: "json_object" },
         },
     });
-    console.log({ response: response.choices[0].message });
+
+    return response.toReadableStream();
+};
+
+class ReplyChunker extends Transform {
+    constructor(options) {
+        super({ ...options, objectMode: true });
+    }
+
+    _transform(chunk, _, cb) {
+        const json = JSON.parse(new Buffer.from(chunk).toString());
+        if (json["type"] === "response.output_text.done") {
+            this.push(json["text"]);
+        }
+        cb();
+    }
+}
+
+(async () => {
+    /**
+     * The assistant API is fairly verbose. It sends multiple "assistant" messages per turn
+     *
+     * When you read the response in lazily, even if messages are in JSON they are incorrectly appended.
+     *
+     * One way around the issue is to stream the response and wait for "response.output_text.done" events
+     *
+     * This will be helpful especially if we expand the protocol as it will allow models to "think as we process"
+     *
+     * We will be able to invoke tools mid-stream and achieve performance.
+     *
+     *
+     * I need to investigate if this behavior of multiple assistant messages per stream works well.
+     */
+    const stream = await llmStream();
+    pipeline(
+        stream,
+        new ReplyChunker(),
+        new PassThrough().on("data", (chunk) => {
+            console.log(chunk.toString());
+        }),
+        (err) => err && console.error({ err })
+    );
 })();
