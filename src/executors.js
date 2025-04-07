@@ -1,10 +1,17 @@
 import "dotenv/config";
 import { Get_ClosingPrompt, Get_Protocol_System_Prompt } from "./prompt.js";
 import { get_file_structure, read_file } from "./tools.js";
+import OpenAI from "openai";
 
 const apiKey = process.env.OPENAI_KEY;
 const client = new OpenAI({ apiKey });
 
+/**
+ * Uses the first version of the 'Protocol' messaging system.
+ * @param   {string}           systemPrompt Original system prompt.
+ * @param   {string}           userMessage  An initial user message to kick off orchestration.
+ * @returns {Promise<string>}
+ */
 export async function linearLLMExecutor(systemPrompt, userMessage) {
     const protocolPrompt = Get_Protocol_System_Prompt();
     const closingPrompt = Get_ClosingPrompt();

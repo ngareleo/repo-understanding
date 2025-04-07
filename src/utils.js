@@ -5,9 +5,9 @@ import { join } from "path";
 /**
  * Reads the content of a file at the given path.
  *
- * @param {string} pathToFile - The path to the file to read.
- * @param {function(Error, string)} cb - A callback that takes `contents` when contents of file are available
- * @returns {string} - A promise that resolves with the file content.
+ * @param   {string}                  pathToFile            The path to the file to read.
+ * @param   {function(Error, string)} cb                    A callback that takes `contents` when contents of file are available.
+ * @returns {string}                                        A promise that resolves with the file content.
  */
 export function readFileContent(pathToFile, cb) {
     readFile(pathToFile, "utf-8", (err, data) => {
