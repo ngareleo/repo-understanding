@@ -1,7 +1,7 @@
 import { Transform, PassThrough, pipeline } from "stream";
 import "dotenv/config";
 import OpenAI from "openai";
-import { Get_SystemPrompt } from "./prompt.js";
+import { Get_Protocol_System_Prompt, Get_SystemPrompt } from "./prompt.js";
 
 /**
  * ---------------------------------------------------------
@@ -18,25 +18,26 @@ import { Get_SystemPrompt } from "./prompt.js";
 const llmStream = async () => {
     const apiKey = process.env.OPENAI_KEY;
     const client = new OpenAI({ apiKey });
-
+    const protocolPrompt = Get_Protocol_System_Prompt();
     const mainSystemPrompt = Get_SystemPrompt("sample/control-tower");
     const response = await client.responses.create({
         model: "gpt-4o",
         input: [
+            { role: "developer", content: protocolPrompt },
             { role: "developer", content: mainSystemPrompt },
             { role: "user", content: "What is the point of this repo?" },
             { role: "user", content: "<pass />" },
             {
                 role: "assistant",
-                content:
-                    "{\n" +
-                    '    "status": "OKAY",\n' +
-                    '    "message": "",\n' +
-                    '    "commands": [\n' +
-                    '        { "utility-name": "get_file_structure", "args": ["sample/control-tower"] },\n' +
-                    '        { "utility-name": "pass_token", "args": [] }\n' +
-                    "    ]\n" +
-                    "}",
+                content: `{
+                        "status": "OKAY",
+                        "message": "",
+                        "commands": [
+                            { "utility-name": "get_file_structure", "args": ["sample/control-tower"] }
+                            { "utility-name": "pass_token", "args": [] }
+                    ]
+                }
+                `,
             },
             {
                 role: "user",
