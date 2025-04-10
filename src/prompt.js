@@ -58,8 +58,6 @@ export const Get_Protocol_System_Prompt = () => `
     \`
 }
 
-
-
 ## Utilities
 - Maximize use of utilities to gain context on your tasks.
 - You are free to invoke as many utilities and as many times as possible.
@@ -70,7 +68,6 @@ export const Get_Protocol_System_Prompt = () => `
 - read_file(pathToFile). Should give you the contents of a file at 'pathToFile'.
 - ready(). Should send a request for permission to provide the final response to the user.
 - pass_token(). (REQUIRED). You must invoke this utility for every 'Protocol-JSON-Message'.
-
 
 ## Directives
 - Used by the 'Protocol' to send you signals and messages 

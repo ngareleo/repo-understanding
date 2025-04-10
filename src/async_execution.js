@@ -4,9 +4,10 @@ import OpenAI from "openai";
 import { Get_Protocol_System_Prompt } from "./prompt.js";
 import { sysPrompt } from "./repo_understanding.js";
 
+const apiKey = process.env.OPENAI_KEY;
+const client = new OpenAI({ apiKey });
+
 const llmStream = async () => {
-    const apiKey = process.env.OPENAI_KEY;
-    const client = new OpenAI({ apiKey });
     const protocolPrompt = Get_Protocol_System_Prompt();
     const systemPrompt = sysPrompt("sample/control-tower");
     const response = await client.responses.create({
@@ -15,49 +16,6 @@ const llmStream = async () => {
             { role: "developer", content: protocolPrompt },
             { role: "developer", content: systemPrompt },
             { role: "user", content: "What is the point of this repo?" },
-            { role: "user", content: "<pass />" },
-            {
-                role: "assistant",
-                content: `{
-                        "status": "OKAY",
-                        "message": "",
-                        "commands": [
-                            { "utility-name": "get_file_structure", "args": ["sample/control-tower"] }
-                            { "utility-name": "pass_token", "args": [] }
-                    ]
-                }
-                `,
-            },
-            {
-                role: "user",
-                content: `
-                <reply>
-                {
-                    "utility": "get_file_structure",
-                    "reply": [
-                        sample/control-tower/.git
-                        sample/control-tower/.gitignore
-                        sample/control-tower/README.md
-                        sample/control-tower/images
-                        sample/control-tower/images/hello.png
-                        sample/control-tower/manifest.json
-                        sample/control-tower/scripts
-                        sample/control-tower/scripts/background
-                        sample/control-tower/scripts/background/main.js
-                        sample/control-tower/scripts/content
-                        sample/control-tower/scripts/content/main.js
-                        sample/control-tower/scripts/extension
-                        sample/control-tower/scripts/extension/popup.js
-                        sample/control-tower/scripts/extension/pre.js
-                        sample/control-tower/styles
-                        sample/control-tower/styles/main.css
-                        sample/control-tower/view
-                        sample/control-tower/view/index.html"
-                    ]
-                }
-                </reply>
-                `,
-            },
         ],
         store: true,
         stream: true,
@@ -69,39 +27,34 @@ const llmStream = async () => {
     return response.toReadableStream();
 };
 
-class ReplyChunker extends Transform {
-    constructor(options) {
-        super({ ...options, objectMode: true });
-    }
-
-    _transform(chunk, _, cb) {
-        const json = JSON.parse(new Buffer.from(chunk).toString());
-        if (json["type"] === "response.output_text.done") {
-            this.push(json["text"]);
-        }
-        cb();
-    }
-}
+const createReplyChunker = (options) => {
+    return new Transform({
+        ...options,
+        objectMode: true,
+        transform(chunk, _, cb) {
+            const json = JSON.parse(new Buffer.from(chunk).toString());
+            if (json["type"] === "response.output_text.done") {
+                this.push(json["text"]);
+            }
+            cb();
+        },
+    });
+};
 
 export const main = async () => {
     /**
      * The assistant API is fairly verbose. It sends multiple "assistant" messages per turn
-     *
-     * When you read the response in lazily, even if messages are in JSON they are incorrectly appended.
-     *
-     * One way around the issue is to stream the response and wait for "response.output_text.done" events
-     *
-     * This will be helpful especially if we expand the protocol as it will allow models to "think as we process"
-     *
-     * We will be able to invoke tools mid-stream and achieve performance.
-     *
-     *
-     * I need to investigate if this behavior of multiple assistant messages per stream works well.
+     * When you read the response lazily, even if messages are in JSON, they are incorrectly appended and failing on the client.
+     * One way around the issue is to stream the response and wait for "response.output_text.done" events and chunk the response.
+     * This will be helpful especially especially when we expand the protocol.
+     * It will allow models to "think in process" and for us to execute tools as the llm streams.
+     * We will be able to invoke tools mid-stream and unlock more performance in our executor.
+     * I need to investigate this behavior further
      */
     const stream = await llmStream();
     pipeline(
         stream,
-        new ReplyChunker(),
+        createReplyChunker({ objectMode: true }),
         new PassThrough().on("data", (chunk) => {
             console.log(chunk.toString());
         }),
