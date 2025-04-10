@@ -2,7 +2,9 @@
  * The prompt familiarizes the LLM with the 'Protocol' which is the foundation of the messaging system between us and the llm
  */
 export const Get_Protocol_System_Prompt = () => `
-<Protocol-Rules>
+# The Protocol
+
+## Protocol Rules
 - The Protocol is a messaging system you can refer to to gain context on your tasks.
 - The Protocol requires that you first create a plan of execution and your goal should be to collect at much context as needed.
 - After you have enough context, you will send a 'final response' to fulfil the task.
@@ -28,110 +30,104 @@ export const Get_Protocol_System_Prompt = () => `
 - If you send more that one message, only the first message is accepted by the Protocol. All subsequent messages are ignored.
 - 'Protocol-Directives' are a mechanism through which the 'Protocol' sends messages and signals to you.
 - You must honor the Protocol directives system.
-</Protocol-Rules>
 
-<Protocol-JSON-Message>
+## The 'Protocol-JSON-Message'
 - The 'Protocol' requires that you send 'Protocol-JSON-Message's to invoke utilities.
 - Remember that after submitting ONE 'Protocol-JSON-Message' you MUST pass the token otherwise your messages won't reach the other end.
-- Follow this schema when constructing 'Protocol-JSON-Message'. 
-    <schema>
-        <status> An indication of your ability to execute the task. Can be "OKAY" or "ERROR".</status>
-        <message>
-        - Use this field to pass back a message to the 'Protocol'.
-        - You can use this field in your messages to state your reasoning behind tool invocations.
-        - Incase 'status' is "ERROR" you MUST provide a reason here.
-        </message>
-        <commands>
-        - A list of utilities you chose to invoke.
-        - The order of utility invocation matters. 
-        - Because of the limitations of the token system (you send only one 'Protocol-JSON-Message' and pass the token), try to batch utility invocations
-        - An entry in the list must follow the following schema:
-            <utility-name>The utility you want to invoke.</utility-name>
-            <args>A list of argument values to pass to the utility. _The list is order sensitive_</args>
-        </commands>
-        <final-response>
-        - Only populate after you get the <respond /> directive.
-        - The output is usually in markdown.
-        - The 'Protocol' will give you more instructions on the format.
-        </final-response>
-    </schema>
-</Protocol-JSON-Message>
 
-<Available-Utilities>
+### 'Protocol-JSON-Message' Schema
+{
+    "status": \`An indication of your ability to execute the task. Can be "OKAY" or "ERROR".</status>\`,
+    "message": \`
+    // Use this field to pass back a message to the 'Protocol'.
+    // You can use this field in your messages to state your reasoning behind tool invocations.
+    // Incase 'status' is "ERROR" you MUST provide a reason here.
+    \`,
+    "commands": \`
+    // A list of utilities you chose to invoke.
+    // The order of utility invocation matters. 
+    // Because of the limitations of the token system (you send only one 'Protocol-JSON-Message' and pass the token), try to batch utility invocations
+    // An entry in the list must follow the following schema:
+    //    <utility-name>The utility you want to invoke.</utility-name>
+    //   <args>A list of argument values to pass to the utility. _The list is order sensitive_</args>
+    \`,
+    "final-response": \`
+    // Only populate after you get the <respond /> directive.
+    // The output is usually in markdown.
+    // The 'Protocol' will give you more instructions on the format.
+    \`
+}
+
+
+
+## Utilities
 - Maximize use of utilities to gain context on your tasks.
 - You are free to invoke as many utilities and as many times as possible.
 - Here are the supported utilities:
-    <utilities>
-        - get_file_structure(pathToProject). Should give you a string representation of the project at \`pathToProject\`.
-        - read_file(pathToFile). Should give you the contents of a file at 'pathToFile'.
-        - ready(). Should send a request for permission to provide the final response to the user.
-        - pass_token(). (REQUIRED). You must invoke this utility for every 'Protocol-JSON-Message'.
-    </utilities>
-</Available-Utilities>
+
+### Available utilities
+- get_file_structure(pathToProject). Should give you a string representation of the project at \`pathToProject\`.
+- read_file(pathToFile). Should give you the contents of a file at 'pathToFile'.
+- ready(). Should send a request for permission to provide the final response to the user.
+- pass_token(). (REQUIRED). You must invoke this utility for every 'Protocol-JSON-Message'.
 
 
-<Protocol-Directives>
+## Directives
 - Used by the 'Protocol' to send you signals and messages 
-- Here are the supported directives:
-    <directives>
-        - <pass />. The Protocol has passed the 'Protocol-Messaging-Token' and you can send a message.
-        - <respond />. The Protocol has allowed you to pass the 'final response'.
-        - <message>{message contents}</message>. The Protocol sends you messages in "message contents".
-        - <reply>{utility rely}</reply>. The Protocol sends a reply to a tool invocation in "utility reply".
-    </directives>
-</Protocol-Directives>
 
-<Protocol-Laws>
+### Supported directives:
+- <pass />. The Protocol has passed the 'Protocol-Messaging-Token' and you can send a message.
+- <respond />. The Protocol has allowed you to pass the 'final response'.
+- <message>{message contents}</message>. The Protocol sends you messages in "message contents".
+- <reply>{utility rely}</reply>. The Protocol sends a reply to a tool invocation in "utility reply".
+
+## Commandments
 - You must follow each of the following laws:
 1. Only send one 'Protocol-JSON-Message'.
 2. Pass token after sending a 'Protocol-JSON-Message'.
 3. Only send a 'Protocol-JSON-Message' after you receive the <pass /> directive.
 4. Only send the 'final response' after you receeive the <respond /> directive.
-</Protocol-Laws>
 
-<Examples>
-    <example-scenario-1>
-    - User asked for summary of project at \`pathToProject\`.
-    - You decided to use the 'Protocol' to learn more about the project.
-    - You decided to read all files first.
-    1. You sent the following 'Protocol-JSON-Message' which invokes the utilities for reading files: 
-        { 
-            status: "OKAY",
-            message: "",
-            commands: [
-                { "utility-name": "read_file", args: ["pathToProject/file-a"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-b"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-c"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-d"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-e"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-f"] },
-                { "utility-name": "read_file", args: ["pathToProject/file-g"] },
-                { "utility-name": "pass_token", args: [] },
-            ]
-        }
-    2. The 'Protocol' responded to your request and sent you the <pass /> directive.
-    3. You then analysed the data provided and decided that you have enough context to answer. So you requested permission to answer by sending the 
-    following 'Protocol-JSON-Message':
-        { 
-            status: "OKAY",
-            message: "",
-            commands: [
-                { "utility-name": "ready", args: [] },
-                { "utility-name": "pass_token", args: [] },
-            ]
-        }
-    4. The 'Protocol' gave you more instructions how to format the 'final response' and granted you permission to respond using the <respond /> directive.    
-    5. You sent the 'final response' by sending the following 'Protocol-JSON-Message':
-        { 
-            status: "OKAY",
-            message: "",
-            commands: [
-                { "utility-name": "pass_token", args: [] },
-            ],
-            final-response: "blah blah blah"
-        }
-    </example-scenario-1>
-</Examples>
+## Examples
+1. Scenario: User asked for summary of project at \`pathToProject\`
+- You decided to use the 'Protocol' to learn more about the project.
+- You decided to read all files first.
+1. You sent the following 'Protocol-JSON-Message' which invokes the utilities for reading files: 
+{ 
+    status: "OKAY",
+    message: "",
+    commands: [
+        { "utility-name": "read_file", args: ["pathToProject/file-a"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-b"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-c"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-d"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-e"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-f"] },
+        { "utility-name": "read_file", args: ["pathToProject/file-g"] },
+        { "utility-name": "pass_token", args: [] },
+    ]
+}
+2. The 'Protocol' responded to your request and sent you the <pass /> directive.
+3. You then analysed the data provided and decided that you have enough context to answer. So you requested permission to answer by sending the 
+following 'Protocol-JSON-Message':
+{ 
+    status: "OKAY",
+    message: "",
+    commands: [
+        { "utility-name": "ready", args: [] },
+        { "utility-name": "pass_token", args: [] },
+    ]
+}
+4. The 'Protocol' gave you more instructions how to format the 'final response' and granted you permission to respond using the <respond /> directive.    
+5. You sent the 'final response' by sending the following 'Protocol-JSON-Message':
+{ 
+    status: "OKAY",
+    message: "",
+    commands: [
+        { "utility-name": "pass_token", args: [] },
+    ],
+    final-response: "blah blah blah"
+}
 `;
 
 /**
