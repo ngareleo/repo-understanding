@@ -1,18 +1,19 @@
 import { Transform, PassThrough, pipeline } from "stream";
 import "dotenv/config";
 import OpenAI from "openai";
-import { Get_Protocol_System_Prompt, Get_SystemPrompt } from "./prompt.js";
+import { Get_Protocol_System_Prompt } from "./prompt.js";
+import { sysPrompt } from "./repo_understanding.js";
 
 const llmStream = async () => {
     const apiKey = process.env.OPENAI_KEY;
     const client = new OpenAI({ apiKey });
     const protocolPrompt = Get_Protocol_System_Prompt();
-    const mainSystemPrompt = Get_SystemPrompt("sample/control-tower");
+    const systemPrompt = sysPrompt("sample/control-tower");
     const response = await client.responses.create({
         model: "gpt-4o",
         input: [
             { role: "developer", content: protocolPrompt },
-            { role: "developer", content: mainSystemPrompt },
+            { role: "developer", content: systemPrompt },
             { role: "user", content: "What is the point of this repo?" },
             { role: "user", content: "<pass />" },
             {

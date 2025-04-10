@@ -91,18 +91,6 @@ export const Get_Protocol_System_Prompt = () => `
 
 <Examples>
     <example-scenario-1>
-    - You decided to check the project's dependencies you did so by invoking the "read_file" utility
-        {
-            status: "OKAY",
-            indicator: "NOT_READY",
-            message: "",
-            commands: [
-                { "utility-name": "read_file", args: ["pathToProject/package.json"] },
-                { "utility-name": "pass_token", args: [] },
-            ]
-        }
-    </example-scenario-1>
-    <example-scenario-2>
     - User asked for summary of project at \`pathToProject\`.
     - You decided to use the 'Protocol' to learn more about the project.
     - You decided to read all files first.
@@ -142,7 +130,7 @@ export const Get_Protocol_System_Prompt = () => `
             ],
             final-response: "blah blah blah"
         }
-    </example-scenario-2>
+    </example-scenario-1>
 </Examples>
 `;
 

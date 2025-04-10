@@ -8,11 +8,17 @@ const client = new OpenAI({ apiKey });
 
 /**
  * Uses the first version of the 'Protocol' messaging system.
- * @param   {string}           systemPrompt Original system prompt.
- * @param   {string}           userMessage  An initial user message to kick off orchestration.
+ * @param   {Object}           args
+ * @param   {string}           args.systemPrompt Original system prompt.
+ * @param   {string}           args.userMessage  An initial user message to kick off orchestration.
+ * @param   {string|undefined} args.formatPrompt Formatting instructions for the final response.
  * @returns {Promise<string>}
  */
-export async function linearLLMExecutor(systemPrompt, userMessage) {
+export async function linearLLMExecutor({
+    systemPrompt,
+    userMessage,
+    formatPrompt,
+}) {
     const protocolPrompt = Get_Protocol_System_Prompt();
     const closingPrompt = Get_ClosingPrompt();
 
@@ -73,6 +79,14 @@ export async function linearLLMExecutor(systemPrompt, userMessage) {
                           role: "developer",
                           content: closingPrompt,
                       },
+                      ...(formatPrompt
+                          ? [
+                                {
+                                    role: "developer",
+                                    content: formatPrompt,
+                                },
+                            ]
+                          : []),
                   ]
                 : []),
         ];
@@ -130,7 +144,6 @@ export async function linearLLMExecutor(systemPrompt, userMessage) {
                     break;
                 }
                 case "pass_token": {
-                    // noop for now
                     break;
                 }
                 case "ready": {
