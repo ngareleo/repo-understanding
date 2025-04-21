@@ -7,9 +7,13 @@ import { getRepoSysPrompt } from "./repo_understanding.js";
 const apiKey = process.env.OPENAI_KEY;
 const client = new OpenAI({ apiKey });
 
-const llmStream = async () => {
+/**
+ * @param {string} systemPrompt Task for the llm.
+ * @returns                     A readable stream of an llm's response.
+ */
+const llmStream = async (systemPrompt) => {
     const protocolPrompt = Get_AsyncProtocol_System_Prompt();
-    const systemPrompt = getRepoSysPrompt("sample/control-tower");
+
     const response = await client.responses.create({
         model: "gpt-4o",
         input: [
@@ -42,6 +46,8 @@ const createReplyChunker = (options) => {
 };
 
 export const main = async () => {
+    const systemPrompt = getRepoSysPrompt("sample/control-tower");
+
     /**
      * The assistant API is fairly verbose. It sends multiple "assistant" messages per turn
      * When you read the response lazily, even if messages are in JSON, they are incorrectly appended and failing on the client.
@@ -51,7 +57,7 @@ export const main = async () => {
      * We will be able to invoke tools mid-stream and unlock more performance in our executor.
      * I need to investigate this behavior further
      */
-    const stream = await llmStream();
+    const stream = await llmStream(systemPrompt);
     pipeline(
         stream,
         createReplyChunker({ objectMode: true }),
