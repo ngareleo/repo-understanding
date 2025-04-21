@@ -1,15 +1,15 @@
 import { Transform, PassThrough, pipeline } from "stream";
 import "dotenv/config";
 import OpenAI from "openai";
-import { Get_Protocol_System_Prompt } from "./prompt.js";
-import { sysPrompt } from "./repo_understanding.js";
+import { Get_AsyncProtocol_System_Prompt } from "./async_prompt.js";
+import { getRepoSysPrompt } from "./repo_understanding.js";
 
 const apiKey = process.env.OPENAI_KEY;
 const client = new OpenAI({ apiKey });
 
 const llmStream = async () => {
-    const protocolPrompt = Get_Protocol_System_Prompt();
-    const systemPrompt = sysPrompt("sample/control-tower");
+    const protocolPrompt = Get_AsyncProtocol_System_Prompt();
+    const systemPrompt = getRepoSysPrompt("sample/control-tower");
     const response = await client.responses.create({
         model: "gpt-4o",
         input: [

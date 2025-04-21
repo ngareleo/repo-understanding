@@ -1,6 +1,6 @@
 import { linearLLMExecutor } from "./executors.js";
 
-export const sysPrompt = (pathToRepo) => `
+export const getRepoSysPrompt = (pathToRepo) => `
 # Your Objective
 - You are presented with a new repository at directory path '${pathToRepo}'. 
 - Users will ask you for information regarding this information:
@@ -31,11 +31,12 @@ export const sysPrompt = (pathToRepo) => `
 export const closingPrompt = `
 - You will use an asserted tone.
 `;
+
 const main = async () => {
     const response = await linearLLMExecutor({
-        systemPrompt: sysPrompt("src"),
+        systemPrompt: getRepoSysPrompt("sample/control-tower"),
         userMessage:
-            "Write a read me for this repository. It should be a short summary of the high level details of the project",
+            "Write a read me for this repository. Give me as much detail as you can",
     });
     console.log({ response });
 };
