@@ -40,10 +40,10 @@ const llmStream = async ({ systemPrompt, userMessage }) => {
  * @param {import("stream").TransformOptions} options
  * @returns {Transform}
  */
-const createReplyChunker = (options) => {
+const createReplyChunker = (options = {}) => {
     return new Transform({
-        ...options,
         objectMode: true,
+        ...options,
         transform(chunk, _, cb) {
             const json = JSON.parse(new Buffer.from(chunk).toString());
             if (json["type"] === "response.output_text.done") {
@@ -56,11 +56,10 @@ const createReplyChunker = (options) => {
 
 /**
  * Logs each response
- * adding it to the internal buffer
  * @param {import("stream").StreamOptions} options
  * @returns {Transform}
  */
-const createLogger = (options) => {
+const createLogger = (options = {}) => {
     return new PassThrough({ objectMode: true, ...options }).on(
         "data",
         (chunk) => {
@@ -84,8 +83,8 @@ export const main = async () => {
     const stream = await llmStream({ systemPrompt, userMessage });
     pipeline(
         stream,
-        createReplyChunker({ objectMode: true }),
-        createLogger({ objectMode: true }),
+        createReplyChunker(),
+        createLogger(),
         (err) => err && console.error({ err })
     );
 };
