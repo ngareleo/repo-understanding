@@ -32,13 +32,11 @@ export const closingPrompt = `
 - You will use an asserted tone.
 `;
 
-const main = async () => {
-    const response = await linearLLMExecutor({
-        systemPrompt: getRepoSysPrompt("sample/control-tower"),
-        userMessage:
-            "Write a read me for this repository. Give me as much detail as you can",
-    });
-    console.log({ response });
-};
-
-export default main;
+export default async function main() {
+  const response = await linearLLMExecutor({
+    systemPrompt: getRepoSysPrompt("sample/control-tower"),
+    userMessage:
+      "Write a read me for this repository. Give me as much detail as you can",
+  });
+  console.log({ response });
+}

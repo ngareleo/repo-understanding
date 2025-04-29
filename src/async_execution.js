@@ -14,24 +14,24 @@ const client = new OpenAI({ apiKey });
  * @returns                           A readable stream of an llm's response.
  */
 const llmStream = async ({ systemPrompt, userMessage }) => {
-    const protocolPrompt = Get_AsyncProtocol_System_Prompt();
+  const protocolPrompt = Get_AsyncProtocol_System_Prompt();
 
-    const response = await client.responses.create({
-        model: "gpt-4o",
-        input: [
-            { role: "developer", content: protocolPrompt },
-            { role: "developer", content: systemPrompt },
-            { role: "user", content: userMessage },
-            { role: "user", content: "<pass />" },
-        ],
-        store: true,
-        stream: true,
-        text: {
-            format: { type: "json_object" },
-        },
-    });
+  const response = await client.responses.create({
+    model: "gpt-4o",
+    input: [
+      { role: "developer", content: protocolPrompt },
+      { role: "developer", content: systemPrompt },
+      { role: "user", content: userMessage },
+      { role: "user", content: "<pass />" },
+    ],
+    store: true,
+    stream: true,
+    text: {
+      format: { type: "json_object" },
+    },
+  });
 
-    return response.toReadableStream();
+  return response.toReadableStream();
 };
 
 /**
@@ -41,17 +41,17 @@ const llmStream = async ({ systemPrompt, userMessage }) => {
  * @returns {Transform}
  */
 const createReplyChunker = (options) => {
-    return new Transform({
-        ...options,
-        objectMode: true,
-        transform(chunk, _, cb) {
-            const json = JSON.parse(new Buffer.from(chunk).toString());
-            if (json["type"] === "response.output_text.done") {
-                this.push(json["text"]);
-            }
-            cb();
-        },
-    });
+  return new Transform({
+    ...options,
+    objectMode: true,
+    transform(chunk, _, cb) {
+      const json = JSON.parse(new Buffer.from(chunk).toString());
+      if (json["type"] === "response.output_text.done") {
+        this.push(json["text"]);
+      }
+      cb();
+    },
+  });
 };
 
 /**
@@ -61,15 +61,17 @@ const createReplyChunker = (options) => {
  * @returns {Transform}
  */
 const createLogger = (options) => {
-    return new PassThrough({ objectMode: true, ...options }).on(
-        "data",
-        (chunk) => {
-            console.log(JSON.stringify(JSON.parse(chunk), null, 2));
-        }
-    );
+  return new PassThrough({ objectMode: true, ...options }).on(
+    "data",
+    (chunk) => {
+      console.log(JSON.stringify(JSON.parse(chunk), null, 2));
+    }
+  );
 };
 
 /**
+ * Apr 21, 2025
+ *
  * The assistant API is fairly verbose. It sends multiple "assistant" messages per turn
  * When you read the response lazily, even if messages are in JSON, they are incorrectly appended and failing on the client.
  * One way around the issue is to stream the response and wait for "response.output_text.done" events and chunk the response.
@@ -77,17 +79,21 @@ const createLogger = (options) => {
  * It will allow models to "think in process" and for us to execute tools as the llm streams.
  * We will be able to invoke tools mid-stream and unlock more performance in our executor.
  * I need to investigate this behavior further
+ *
+ *
+ * Apr 29, 2025
+ *
+ * I think I'm using the assistant api incorrectly. After revising the docs, I'll change this implementation to completions api
+ * I'll start another side project using assistant api
  */
-export const main = async () => {
-    const systemPrompt = getRepoSysPrompt("sample/control-tower");
-    const userMessage = process.argv[3] || "What is the point of this repo?";
-    const stream = await llmStream({ systemPrompt, userMessage });
-    pipeline(
-        stream,
-        createReplyChunker({ objectMode: true }),
-        createLogger({ objectMode: true }),
-        (err) => err && console.error({ err })
-    );
-};
-
-export default main;
+export default async function main() {
+  const systemPrompt = getRepoSysPrompt("sample/control-tower");
+  const userMessage = process.argv[3] || "What is the point of this repo?";
+  const stream = await llmStream({ systemPrompt, userMessage });
+  pipeline(
+    stream,
+    createReplyChunker({ objectMode: true }),
+    createLogger({ objectMode: true }),
+    (err) => err && console.error({ err })
+  );
+}
