@@ -4,6 +4,11 @@ const message = "'Protocol-JSON-Message'";
 const directive = "'Protocol-Directive'";
 const pass = "<pass />";
 const respond = "<respond />";
+const stepPlan = "'Step Plan'";
+const taskAnalysisReport = "'Task Analysis Report'";
+const thinkingExtension = "'thinking extension'";
+const thinkingPhase = "'thinking phase'";
+const respondingPhase = "'responding phase'";
 
 /**
  * The prompt familiarizes the LLM with the 'Protocol' which is the foundation of the messaging system between us and the llm
@@ -95,22 +100,23 @@ export const Get_Protocol_System_Prompt = () => `
 
 export const Get_Thinking_Prompt = () => `
 # Protocol Thinking Extension
-- The ${protocol} has enabled the 'thinking extension'. This extension will allow you to analyze the user's ask to be able to provide quality responses.
+- The ${protocol} has enabled the ${thinkingExtension}. This extension will allow you to analyze the user's ask to be able to provide quality responses.
 - Once you're given the ${token} for the first time (When you see the ${pass} directive for the first time), you can invoke the "start_thinking" utility.
-- This utility marks the 'thinking phase'.
-- During the 'thinking phase', you can invoke additional utilities provided by the extension. However there is an order of invocation, 
+- This utility marks the start of the ${thinkingPhase}.
+- During the ${thinkingPhase}, you can invoke additional utilities provided by the extension. 
+- The extension requires you invoke the extensions's utilities in order.
 
-# Additional Terminology
-- 'Tool Queue'. This is an internal ${protocol} buffer that you prepare during the 'thinking phase'. It contains utility invocations you anticipate will be needed.
-- 'Step Plan'. This is an intenal ${protocol} buffer with steps you will take to complete the task.
-- 'Task Analysis Report'. This is a report you hand to the ${protocol} at the start of the 'thinking phase'
+# Terminology
+- ${stepPlan}. This is an intenal ${protocol} buffer with steps you will take to complete the task. You will later use this buffer to accomplish your task.
+- ${taskAnalysisReport}. This is a report you hand to the ${protocol} at the start of the ${thinkingPhase}
 
 # Extension Instructions
-- First, you must provide the ${protocol} with a 'Task Analysis Report'. This is a summary of what you think the user needs from you.
-- Second, you pass the report through the "send_report(report)" utility, where report is the summary.
-- Third, you must come up with steps of how you will achieve the task in the report. 
-- You must load these steps into the 'Step Plan' by invoking the "push_step()" utility. 
-- TIP: Invoke it multiple times in a single ${message}. Example
+- First, you must provide the ${protocol} with a ${taskAnalysisReport}. This is a summary of what you think the task you've been given is.
+- You pass the report through the "send_report(report)" utility, where report is the summary.
+
+- Second, you must come up with steps of how you will achieve the task in the report you passed in the previous step. 
+- You must load these steps into the ${stepPlan} by invoking the "push_step(step)" utility, where step is a detailed instruction of what you need to do and what it will achieve. 
+- TIP: Invoke "push_step(step)" multiple times in a single ${message} to optimise on time. Example
 \`\`\`
 {
     status: "OKAY",
@@ -125,29 +131,23 @@ export const Get_Thinking_Prompt = () => `
     ]
 }
 \`\`\`
-- You must invoke "commit_steps" utility to seal the 'Step Plan'. Once sealed, it cannot be changed.
-- Fourth, you should come up with sets of utility invocations needed to fulfil each step. 
-- Similar to the previous step, you must push each set of invocations into the 'Tool Queue' using the "push_invocation(utility)" utility.
-- You must seal the 'Tool queue' using the "commit_tools" utility.
-- TIP: Invoke it multiple times in a single ${message}.
-- Finally, you can invoke the "end_thinking" to quit out of the 'thinking phase' and move into the 'responding phase'.
-- In the 'responding phase' you will refer to the 'Tool queue' and the 'Step queue', invoke tools from the ${protocol} and finally respond.
+- You must invoke the "commit_steps" utility to seal the ${stepPlan}. 
+- Once sealed, the ${stepPlan} cannot be changed.
+
+- Finally, you can invoke the "end_thinking" to quit out of the ${thinkingPhase} and move into the ${respondingPhase}.
+- In the ${respondingPhase} you will refer to the ${stepPlan} and invoke tools from the ${protocol} according to the plan.
 
 # Additional Utilities
-- start_thinking(). Invoke this utility to start the thinking process.
-- send_report(report). Use this utility to send a report of your analysis of the task.
-- push_step(step). Use this utility to add a step in your execution plan.
-- commit_steps(). Invoke this utility after committing all your steps.
-- push_invocation(utility). This pushes a utility to the tool queue.
-- commit_tools(). This commits the tool queue as-is to the Protocol.
-- peek_tool_queue(). This tool can let you look into the Tool Queue.
-- end_thinking(). Invoke this utility to end the thinking phase.
+- start_thinking(). Invoke this utility to start the ${thinkingPhase}.
+- send_report(report). Use this utility to send the ${taskAnalysisReport} to the ${protocol}.
+- push_step(step). Use this utility to add a step in the ${stepPlan}.
+- commit_steps(). Invoke this utility after committing all your steps to seal the ${stepPlan}.
+- peek_steps(). This tool can let you look into the ${stepPlan}.
+- end_thinking(). Invoke this utility to end the ${thinkingPhase}.
 
 #  Additional Directives
-- <thinking-end />. This indicates end of thinking.
-
-# Hints
-- Once you start the responding phase, you should peek into the tool queue to reconsider if the pl
+- <thinking-start />. This directive marks the start of the ${thinkingPhase}.
+- <thinking-end />. This directive marks the end of the ${thinkingPhase}.
 `;
 
 /**
@@ -157,12 +157,8 @@ export const Get_Thinking_Prompt = () => `
 export const Get_ClosingPrompt = () => `
 Now that you have enough context to answer the user's question, you are free to respond. 
 
-<instructions>
+# Response Instructions
 - Your response should be factual only using answers from the context you've just now collected
 - The response should be clear
 - The response should match the user's tone and energy
-</instructions>
-<output>
-- The output should be in readable markdown format.
-</output>
 `;
