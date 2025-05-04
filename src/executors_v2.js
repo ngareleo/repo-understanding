@@ -7,6 +7,29 @@ import {
 const apiKey = process.env.OPENAI_KEY;
 const client = new OpenAI({ apiKey });
 
+class Executor {
+   constructor(params) {}
+
+   /**
+    * Register a Protocol System extension.
+    * @param   {Object}           args
+    * @param   {string}           args.name     The name of the extension.
+    * @param   {Function()}           args.handler  A routine to be handle utility invocations
+    * @returns {Promise<string>}
+    */
+   extend(extension) {}
+
+   /**
+    * Executes a user utterance using the Protocol System V2.
+    * @param   {Object}           args
+    * @param   {string}           args.systemPrompt Original system prompt.
+    * @param   {string}           args.userMessage  An initial user message to kick off orchestration.
+    * @param   {string|undefined} args.formatPrompt Formatting instructions for the final response.
+    * @returns {Promise<string>}
+    */
+   execute({ systemPrompt, userMessage, formatPrompt }) {}
+}
+
 /**
  * Based off v2 prompt.
  */
@@ -14,13 +37,15 @@ export async function main() {
    const fsExtension = {
       name: "fs",
       prompt: Get_Fs_Extension(),
-      handler: () => {},
+      handler: ({ args }) => {
+         const [] = args;
+      },
    };
 
    const thinkingExtension = {
       name: "thinking",
       prompt: Get_Thinking_Prompt(),
-      handler: () => {},
+      handler: ({ args }) => {},
    };
 }
 
