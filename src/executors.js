@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Get_ClosingPrompt, Get_Protocol_System_Prompt } from "./prompt.js";
+import { Get_ClosingPrompt, Get_Protocol_System_Prompt } from "./prompt_vbase.js";
 import { get_file_structure, read_file } from "./tools.js";
 import OpenAI from "openai";
 
