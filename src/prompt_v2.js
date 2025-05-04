@@ -1,15 +1,12 @@
 const protocol = "'Protocol'";
 const token = "'Protocol Messaging Token'";
-const tokens = "'Protocol Messaging Tokens'";
 const message = "'Protocol JSON Message'";
-const messages = "'Protocol JSON Messages'";
 const directive = "'Protocol Directive'";
 const directives = "'Protocol Directives'";
 const extension = "'Protocol Extension'";
 const extensions = "'Protocol Extensions'";
 const system = "'Protocol System'";
 const pass = "<pass />";
-const respond = "<respond />";
 const stepPlan = "'Step Plan'";
 const taskAnalysisReport = "'Task Analysis Report'";
 const thinkingExtension = "'thinking extension'";
@@ -180,10 +177,6 @@ export const Get_Thinking_Extension = () => `
 - commit_steps()      - Invoke this utility after committing all your steps to seal the ${stepPlan}.
 - peek_steps()        - This tool can let you look into the ${stepPlan}.
 - end_thinking()      - Invoke this utility to end the ${thinkingPhase}.
-
-# Extension Directives
-- <thinking-start /> - This directive marks the start of the ${thinkingPhase}.
-- <thinking-end />   - This directive marks the end of the ${thinkingPhase}.
 `;
 
 /**

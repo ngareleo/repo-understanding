@@ -26,6 +26,9 @@ export class Executor {
     return this;
   }
 
+  /**
+   * Performs the actual LLM call to OpenAI.
+   */
   #execute = async (messages) => {
     const response = await client.chat.completions.create({
       model: "gpt-4o",
@@ -46,6 +49,7 @@ export class Executor {
   };
 
   /**
+   * This helper prepares the prompt for each LLM API call.
    * @param   {Object}             args
    * @param   {string}             args.systemPrompt Original system prompt.
    * @param   {string}             args.userMessage  An initial user message to kick off orchestration.
@@ -56,19 +60,18 @@ export class Executor {
     const protocolClosingPrompt = Get_Closing_Prompt();
 
     const starters = [
-      { role: "developer", content: protocol },
-      // Add prompts for each extension enabled
+      { role: "developer", content: protocol }, // Opening protocol prompt
       ...Object.values(this.extensions).map((extension) => ({
         role: "developer",
         content: extension["prompt"],
-      })),
-      { role: "developer", content: systemPrompt },
-      { role: "user", content: userMessage },
-      { role: "user", content: "<pass />" },
+      })), // Add extension instructions to the main prompt
+      { role: "developer", content: systemPrompt }, // System prompt
+      { role: "user", content: userMessage }, // User message
+      { role: "user", content: "<pass />" }, // Kick off conversation
     ];
 
     const previousMessages = history.reduce(
-      (prev, { content, turnExecutionResults }) => [
+      (prev, { content, executionBuffer }) => [
         ...prev,
         {
           role: "assistant",
@@ -76,7 +79,7 @@ export class Executor {
         },
         {
           role: "user",
-          content: JSON.stringify(turnExecutionResults, null, 2),
+          content: JSON.stringify(executionBuffer, null, 2),
         },
       ],
       []
@@ -104,6 +107,9 @@ export class Executor {
     return [...starters, ...previousMessages, ...closingPrompts];
   };
 
+  /**
+   * Kills the exection cycle.
+   */
   #toggleReadyToGenerate = () => {
     readyToGenerate = true;
   };
@@ -117,20 +123,26 @@ export class Executor {
    * @returns {Promise<string>}
    */
   async execute(props) {
-    const directives = [];
-    const state = (id) => this.internalState[id];
-    const updateState = (id, cb) => {
-      this.internalState[id] = cb(this.internalState[id]);
-    };
-    const pushDirective = (directive) => {
-      directives.push(directive);
+    /**
+     * Allows extensions to define internal state in the executor.
+     */
+    const state = () => ({
+      get: (id) => this.internalState[id],
+      set: (id, cb) => (this.internalState[id] = cb(this.internalState[id])),
+    });
+
+    /**
+     * Allows extensions to hook into the buffer that is added into history.
+     */
+    const buffer = () => {
+      const executionBuffer = [];
+      return { push: (value) => executionBuffer.push(value) };
     };
 
     /**
      * The execution loop allows chain of thought
      */
     do {
-      const executionBuffer = [];
       const content = await this.#execute(this.#getConversationHistory(props));
 
       if (!content) {
@@ -175,10 +187,8 @@ export class Executor {
           const extension = this.extensions[target];
           extension.handler({
             commands,
-            executionBuffer,
+            buffer,
             state,
-            updateState,
-            pushDirective,
           });
         }
       }
@@ -191,12 +201,13 @@ export class Executor {
 export const fsExtension = {
   name: "fs",
   prompt: Get_Fs_Extension(),
-  handler: async ({ commands, executionBuffer }) => {
+  handler: async ({ commands, buffer }) => {
+    const { push } = buffer();
     for (const command of commands) {
       switch (command["utility-name"]) {
         case "get_file_structure": {
           const value = await get_file_structure(command["args"][0]);
-          executionBuffer.push(
+          push(
             `
                 <reply name="get_file_structure" args="[${
                   command["args"][0]
@@ -209,7 +220,7 @@ export const fsExtension = {
         }
         case "read_file": {
           const value = await read_file(command["args"][0]);
-          executionBuffer.push(
+          push(
             `
               <reply name="read_file" args="[${command["args"][0]}]"/>
                 ${JSON.stringify(value, null, 2)}
@@ -226,45 +237,41 @@ export const fsExtension = {
 export const thinkingExtension = {
   name: "thinking",
   prompt: Get_Thinking_Extension(),
-  handler: async ({
-    commands,
-    updateState,
-    executionBuffer,
-    state,
-    pushDirective,
-  }) => {
+  handler: async ({ commands, buffer, state }) => {
+    const { push } = buffer();
+    const { set, get } = state();
+
     for (const command of commands) {
       switch (command["utility-name"]) {
         case "start_thinking": {
-          updateState("thinking", (prev) => ({
+          get("thinking", (prev) => ({
             ...prev,
             mode: "thinking",
           }));
-          pushDirective("<thinking-start />");
           break;
         }
         case "send_report": {
           const [report] = command["args"];
-          updateState("thinking", (prev) => ({ ...prev, report }));
+          set("thinking", (prev) => ({ ...prev, report }));
           break;
         }
         case "push_step": {
           const [step] = command["args"];
-          updateState("thinking", (prev) => ({
+          set("thinking", (prev) => ({
             ...prev,
             steps: [...(prev.steps || []), step],
           }));
           break;
         }
         case "commit_steps": {
-          updateState("thinking", (prev) => ({
+          set("thinking", (prev) => ({
             ...prev,
             status: "sealed",
           }));
           break;
         }
         case "peek_steps": {
-          executionBuffer.push(
+          push(
             `
               <reply name="peek_steps" args="[]"/>
                 ${JSON.stringify(state("thinking")["steps"], null, 2)}
@@ -274,11 +281,10 @@ export const thinkingExtension = {
           break;
         }
         case "end_thinking": {
-          updateState("thinking", (prev) => ({
+          set("thinking", (prev) => ({
             ...prev,
             mode: "execution",
           }));
-          pushDirective("<thinking-end />");
           break;
         }
       }
