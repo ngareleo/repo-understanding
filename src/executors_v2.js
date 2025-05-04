@@ -12,7 +12,7 @@ export class Executor {
   executing = true;
   readyToGenerate = false;
   history = [];
-  extensions = new Set();
+  extensions = {};
   internalState = {};
 
   /**
@@ -21,8 +21,8 @@ export class Executor {
    * @param   {string}           args.name     The name of the extension.
    * @param   {Function()}       args.handler  A routine to be handle utility invocations
    */
-  extension(extension) {
-    extensions.add(extension);
+  extension(name, extension) {
+    extensions[name] = extension;
     return this;
   }
 
@@ -58,7 +58,10 @@ export class Executor {
     const starters = [
       { role: "developer", content: protocol },
       // Add prompts for each extension enabled
-      ...extensions.map((extension) => extension["prompt"]),
+      ...Object.values(this.extensions).map((extension) => ({
+        role: "developer",
+        content: extension["prompt"],
+      })),
       { role: "developer", content: systemPrompt },
       { role: "user", content: userMessage },
       { role: "user", content: "<pass />" },
@@ -114,17 +117,20 @@ export class Executor {
    * @returns {Promise<string>}
    */
   async execute(props) {
+    const directives = [];
     const state = (id) => this.internalState[id];
     const updateState = (id, cb) => {
       this.internalState[id] = cb(this.internalState[id]);
     };
-    const resolve = (directive) => {};
+    const pushDirective = (directive) => {
+      directives.push(directive);
+    };
 
     /**
      * The execution loop allows chain of thought
      */
     do {
-      const turnExecutionResults = [];
+      const executionBuffer = [];
       const content = await this.#execute(this.#getConversationHistory(props));
 
       if (!content) {
@@ -165,22 +171,19 @@ export class Executor {
           }
         }
       } else {
-        if (this.extensions.some((ext) => ext["name"] === target)) {
-          const [extension] = this.extensions.find(
-            (ext) => ext["name"] === target
-          );
-          if (extension) {
-            extension.handler({
-              commands,
-              executionBuffer: turnExecutionResults,
-              state,
-              updateState,
-            });
-          }
+        if (this.extensions[target]) {
+          const extension = this.extensions[target];
+          extension.handler({
+            commands,
+            executionBuffer,
+            state,
+            updateState,
+            pushDirective,
+          });
         }
       }
 
-      history.push({ turnExecutionResults, content });
+      history.push({ executionBuffer, content });
     } while (executing);
   }
 }
@@ -223,7 +226,13 @@ export const fsExtension = {
 export const thinkingExtension = {
   name: "thinking",
   prompt: Get_Thinking_Extension(),
-  handler: async ({ commands, updateState, executionBuffer, state }) => {
+  handler: async ({
+    commands,
+    updateState,
+    executionBuffer,
+    state,
+    pushDirective,
+  }) => {
     for (const command of commands) {
       switch (command["utility-name"]) {
         case "start_thinking": {
@@ -231,6 +240,7 @@ export const thinkingExtension = {
             ...prev,
             mode: "thinking",
           }));
+          pushDirective("<thinking-start />");
           break;
         }
         case "send_report": {
@@ -268,6 +278,7 @@ export const thinkingExtension = {
             ...prev,
             mode: "execution",
           }));
+          pushDirective("<thinking-end />");
           break;
         }
       }

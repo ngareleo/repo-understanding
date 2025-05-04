@@ -46,8 +46,8 @@ export default async function main() {
     },
     v2: async () => {
       const response = await new Executor()
-        .extension(fsExtension)
-        .extension(thinkingExtension)
+        .extension("fs", fsExtension)
+        .extension("thinking", thinkingExtension)
         .execute({
           systemPrompt: getRepoSysPrompt("sample/control-tower"),
           userMessage:
