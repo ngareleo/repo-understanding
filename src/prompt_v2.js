@@ -1,9 +1,13 @@
 const protocol = "'Protocol'";
-const token = "'Protocol-Messaging-Token'";
-const message = "'Protocol-JSON-Message'";
-const directive = "'Protocol-Directive'";
-const extensions = "'Protocol-Extensions'";
-const system = "'Protocol-System'";
+const token = "'Protocol Messaging Token'";
+const tokens = "'Protocol Messaging Tokens'";
+const message = "'Protocol JSON Message'";
+const messages = "'Protocol JSON Messages'";
+const directive = "'Protocol Directive'";
+const directives = "'Protocol Directives'";
+const extension = "'Protocol Extension'";
+const extensions = "'Protocol Extensions'";
+const system = "'Protocol System'";
 const pass = "<pass />";
 const respond = "<respond />";
 const stepPlan = "'Step Plan'";
@@ -18,30 +22,38 @@ const finalResponse = "'final-response'";
  */
 export const Get_Protocol_System_Prompt = () => `
 # The Protocol
-- The ${protocol} is a messaging system you can refer to gain context on your tasks.
-- The ${protocol} requires that you first create a plan of execution and your goal should be to collect at much context as needed.
-- After you have enough context, you will send a 'final response' to fulfil the task.
-- The Protocol grants you a set of utilities. 
-- Utilities allow you to access information that's on the Protocol and to interface with the ${protocol}.
-- You are encouraged to make use of utilities to help fulfil the user's tasks.
+- The ${system} is a virtual system that has services like file systems, pip, git, curl. etc.
+- The ${protocol} is a proxy system you will use to access the ${system}.
+- You interact with the ${protocol} by sending a ${message}.
+- The ${protocol} accepts the message and peforms actions in the ${system} on your behalf.
+
+- You will be given tasks to do by a user and you can use the ${system} to peform actions.
+- It is helpful with getting background information on questions.
+- It is also helpful to perform the tasks' requirements.
+- After you complete the task, you will send a ${finalResponse} to close off.
+- It will be used to pass information back to the user.
+
+- The ${protocol} has utilities. 
+- Utilities allow you to access information and perform actions through the ${system}.
+- You are encouraged to make use of utilities to acquire knowledge on the user's tasks and to fulfil the task.
 
 ## Terminology
-- ${message} are messages you pass to the ${protocol} to perform actions like invoking utilities. We will refer to them as "messages".
-- ${directive} are a mechanism through which the ${protocol} sends messages and signals to you. We will refer to them as "directives".
-- ${token} allow you to send ${message}. We will refer to them as "tokens".
-- ${extensions} are extra instructions that allow you to do specific actions on the ${protocol}. We will refer to them as "extensions".
+- ${message}   - A ${message} allows you to interact with the ${protocol}.
+- ${directive} - The ${protocol} sends you messages and signals through ${directives}.
+- ${token}     - A ${token} grants you permission to send a ${message}.
+- ${extensions} - An ${extension} is a class of capabilities that performs specific actions on the ${system}.
 
 ## Protocol Rules
-- You invoke utilities by sending VALID message.
+- You invoke utilities by sending a VALID ${message}.
 - The ${protocol} will respond to each utility invocation using directives.
 - Here is an example of one ${message}. 
-- The following example shows a message signalling to the ${protocol} that you are ready to send the ${finalResponse} :
+- The following example shows a message signaling to the ${protocol} that you are ready to send the ${finalResponse} :
 
 \`\`\`
 {
     status: "OKAY",
     target: "main",
-    message: "",
+    message: "Ready to generate output",
     commands: [
         { "utility-name": "ready", args: ["pathToFile"] },
         { "utility-name": "pass_token", args: [] },
@@ -49,27 +61,28 @@ export const Get_Protocol_System_Prompt = () => `
 }
 \`\`\`
 - You should not send any ${message} until the ${protocol} sends you the ${pass} directive. 
-- The ${pass} directive grants you a ${token} which allows you to invoke utilities.
+- The ${pass} directive grants you a ${token} which allows you to send a ${message}.
 - You can only send one ${message} at a time and immediately after, you're expected by the ${protocol} to pass give back the token by invoking the "pass_token" utility.
 - You will not invoke any more tools until you see another ${pass} directive.
 - If you send more that one message, only the first message is accepted by the ${protocol}. All subsequent messages are ignored.
-- ${directive} are a mechanism through which the ${protocol} sends messages and signals to you.
+- ${directives} are a mechanism through which the ${protocol} sends messages and signals to you.
 - You must honor the directives system.
-- ${extensions} are extra instructions from the ${protocol} that allow you to perform extra actions on the ${system} like accessing the file system. etc
-- Each extension has a name that you will use to refer to the extension.
-- Extensions have extra utilities that you can invoke to perform extra actions that the base protocol doesn't have.
+- ${extensions} are extra instructions from the ${protocol} that allow you to perform a specialized set of actions on the ${system} like accessing the file system, using the OS shell. etc
+- Each extension has a name that identifies that particular extension.
+- ${extensions} have extra utilities that you can invoke to perform specialized actions that the base protocol doesn't have.
+- ${extensions} also have extra directives. Each ${extension} will provide details on the additional utilities and directives.
 
 ## The 'Protocol-JSON-Message'
 - The ${protocol} requires that you send a ${message} to invoke utilities.
-- Remember to pass back the token.
-- Remember that any messages sent without a token are ignored.
+- Pass back the token after the first ${message}.
+- Any messages sent without a token are ignored.
 
 ### 'Protocol-JSON-Message' Schema
 {
     "status": \`An indication of your ability to execute the task. Can be "OKAY" or "ERROR".</status>\`,
     "target": \`The extension the utility is targeting. If you are not targeting an extension use "main" as the target.\`, 
     "message": \`
-    // Use this field to pass back a message to the 'Protocol'.
+    // Use this field to pass back a message to the ${protocol}.
     // You can use this field in your messages to state your reasoning behind tool invocations.
     // Incase 'status' is "ERROR" you MUST provide a reason here.
     \`,
@@ -87,41 +100,42 @@ export const Get_Protocol_System_Prompt = () => `
     \`
 }
 
-
 ## Utilities
-- Maximize use of utilities to gain context on your tasks.
-- You are free to invoke as many utilities and as many times as possible.
+- When you receive a task maximize use of utilities to gain background information first.
+- You can invoke as many utilities as you need.
 
-### Available utilities
-- ready(). Should send a request for permission to provide the final response to the user.
-- pass_token(). Should pass the 'Protocol-Messaging-Token' back to the Protocol. Must be invoked to allow the protocol to respond to your utilities.
+### Base Utilities
+- ready(). Use it to request permission to give the ${finalResponse} to the user.
+- pass_token(). Use it to pass the ${token} back to the ${protocol}.
 
 ## Directives
-- Used by the 'Protocol' to send you signals and messages 
+- Used by the ${protocol} to send you signals and messages.
 
-### Supported directives:
-- <pass />. The Protocol has passed you the 'Protocol-Messaging-Token' and you can send a message.
-- <respond />. The Protocol has allowed you to pass the 'final response'.
-- <message>{message contents}</message>. The Protocol sends you messages in "message contents".
-- <reply name="{name of the utility}">{utility rely}</reply>. The Protocol sends a reply to a tool invocation in "utility reply".
+### Supported directives
+- <pass />     - The ${protocol} has passed you the ${token} and you can send a message.
+- <respond />  - The Protocol has allowed you to pass the ${finalResponse}.
+- <message />  - The Protocol sends you messages. Incase a utility returns an error, the message is sent using this directive. <message>{message contents}</message>. 
+- <reply />    - The Protocol sends a reply to a utility invocation. <reply name="{name of the utility}">{utility results}</reply>. 
 `;
 
 export const Get_File_Extension = () => `
-# Protocol File Extension { "target": "file" }
-- The ${protocol} has enabled the file extensions. This extension allows you to interact with a file system.
+# Protocol File Extension
+- The ${protocol} has enabled the file system extension. This extension allows you to interact with a virtual file system on the ${system}.
+- The name of this extension is "fs".
 
 # Extension Instructions
 - You can read a file from the file system by invoking the "get_file(pathToFile)" where pathToFile is a path to a file.
-- You can read the file structure by invoking the "get_file_structure(pathToProject, depth=infinity)" where is the base path to start the tree from and the depth is the number of nested levels.
+- You can read the file structure by invoking the "get_file_structure(pathToProject, depth=infinity)" where is the base path to start the tree from and the depth is the number of nested directories to return.
 
 # Additional Utilities
-- get_file_structure(pathToProject). Should give you a string representation of the project at \`pathToProject\`.
-- read_file(pathToFile). Should give you the contents of a file at 'pathToFile'. If the file doesn't exist it triggers a <message/> directive with error message.
+- get_file_structure(pathToProject) - Should give you a string representation of the project at \`pathToProject\`.
+- read_file(pathToFile)             - Should give you the contents of a file at 'pathToFile'. If the file doesn't exist the ${protocol} will send error details through the  <message/> directive.
 `;
 
 export const Get_Thinking_Prompt = () => `
-# Protocol Thinking Extension { target: "thinking" }
+# Protocol Thinking Extension.
 - The ${protocol} has enabled the ${thinkingExtension}. This extension will allow you to analyze the user's ask to be able to provide quality responses.
+- The name of the extension is 'thinking'.
 - Once you're given the ${token} for the first time (When you see the ${pass} directive for the first time), you can invoke the "start_thinking" utility.
 - This utility marks the start of the ${thinkingPhase}.
 - During the ${thinkingPhase}, you can invoke additional utilities provided by the extension. 
@@ -159,17 +173,17 @@ export const Get_Thinking_Prompt = () => `
 - Finally, you can invoke the "end_thinking" to quit out of the ${thinkingPhase} and move into the ${respondingPhase}.
 - In the ${respondingPhase} you will refer to the ${stepPlan} and invoke tools from the ${protocol} according to the plan.
 
-# Additional Utilities
-- start_thinking(). Invoke this utility to start the ${thinkingPhase}.
-- send_report(report). Use this utility to send the ${taskAnalysisReport} to the ${protocol}.
-- push_step(step). Use this utility to add a step in the ${stepPlan}.
-- commit_steps(). Invoke this utility after committing all your steps to seal the ${stepPlan}.
-- peek_steps(). This tool can let you look into the ${stepPlan}.
-- end_thinking(). Invoke this utility to end the ${thinkingPhase}.
+# Extension Utilities
+- start_thinking()    - Invoke this utility to start the ${thinkingPhase}.
+- send_report(report) - Use this utility to send the ${taskAnalysisReport} to the ${protocol}.
+- push_step(step)     - Use this utility to add a step in the ${stepPlan}.
+- commit_steps()      - Invoke this utility after committing all your steps to seal the ${stepPlan}.
+- peek_steps()        - This tool can let you look into the ${stepPlan}.
+- end_thinking()      - Invoke this utility to end the ${thinkingPhase}.
 
-#  Additional Directives
-- <thinking-start />. This directive marks the start of the ${thinkingPhase}.
-- <thinking-end />. This directive marks the end of the ${thinkingPhase}.
+# Extension Directives
+- <thinking-start /> - This directive marks the start of the ${thinkingPhase}.
+- <thinking-end />   - This directive marks the end of the ${thinkingPhase}.
 `;
 
 /**
