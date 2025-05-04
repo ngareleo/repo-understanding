@@ -105,8 +105,8 @@ export const Get_Protocol_System_Prompt = () => `
 - You can invoke as many utilities as you need.
 
 ### Base Utilities
-- ready(). Use it to request permission to give the ${finalResponse} to the user.
-- pass_token(). Use it to pass the ${token} back to the ${protocol}.
+- ready()      - Use it to request permission to give the ${finalResponse} to the user.
+- pass_token() - Use it to pass the ${token} back to the ${protocol}.
 
 ## Directives
 - Used by the ${protocol} to send you signals and messages.
