@@ -115,7 +115,7 @@ export const Get_Protocol_System_Prompt = () => `
 - <pass />     - The ${protocol} has passed you the ${token} and you can send a message.
 - <respond />  - The Protocol has allowed you to pass the ${finalResponse}.
 - <message />  - The Protocol sends you messages. Incase a utility returns an error, the message is sent using this directive. <message>{message contents}</message>. 
-- <reply />    - The Protocol sends a reply to a utility invocation. <reply name="{name of the utility}">{utility results}</reply>. 
+- <reply />    - The Protocol sends a reply to a utility invocation. <reply name="{name of the utility}" args="{Arguments you passed}">{utility results}</reply>. 
 `;
 
 export const Get_Fs_Extension = () => `
