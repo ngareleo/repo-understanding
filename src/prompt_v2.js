@@ -38,9 +38,9 @@ export const Get_Protocol_System_Prompt = () => `
 - You are encouraged to make use of utilities to acquire knowledge on the user's tasks and to fulfil the task.
 
 ## Terminology
-- ${message}   - A ${message} allows you to interact with the ${protocol}.
-- ${directive} - The ${protocol} sends you messages and signals through ${directives}.
-- ${token}     - A ${token} grants you permission to send a ${message}.
+- ${message}    - A ${message} allows you to interact with the ${protocol}.
+- ${directive}  - The ${protocol} sends you messages and signals through ${directives}.
+- ${token}      - A ${token} grants you permission to send a ${message}.
 - ${extensions} - An ${extension} is a class of capabilities that performs specific actions on the ${system}.
 
 ## Protocol Rules
