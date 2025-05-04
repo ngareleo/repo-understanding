@@ -21,98 +21,105 @@ export class Executor {
    * @param   {Function()}       args.handler  A routine to be handle utility invocations
    * @returns {Promise<string>}
    */
-  static extend(extension) {
-    this.extensions.add(extension);
+  extension(extension) {
+    extensions.add(extension);
     return self;
   }
 
+  #execute = async (messages) => {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      store: true,
+      response_format: {
+        type: "json_object",
+      },
+    });
+
+    if (response.choices.length == 0) {
+      return undefined;
+    }
+
+    const message = response.choices[0].message;
+    console.info({ message });
+    return JSON.parse(message.content);
+  };
+
   /**
-   * Executes a user utterance using the Protocol System V2.
-   * @param   {Object}           args
-   * @param   {string}           args.systemPrompt Original system prompt.
-   * @param   {string}           args.userMessage  An initial user message to kick off orchestration.
-   * @param   {string|undefined} args.formatPrompt Formatting instructions for the final response.
-   * @returns {Promise<string>}
+   * @param   {Object}             args
+   * @param   {string}             args.systemPrompt Original system prompt.
+   * @param   {string}             args.userMessage  An initial user message to kick off orchestration.
+   * @param   {string | undefined} args.formatPrompt Formatting instructions for the final response.
    */
-  static async execute({ systemPrompt, userMessage, formatPrompt }) {
+  #getConversationHistory = ({ systemPrompt, userMessage, formatPrompt }) => {
     const protocol = Get_Protocol_System_V2Prompt();
     const protocolClosingPrompt = Get_Closing_Prompt();
 
-    /**
-     * Performs the actual LLM cal;
-     */
-    const execute = async (messages) => {
-      const response = await client.chat.completions.create({
-        model: "gpt-4o",
-        messages,
-        store: true,
-        response_format: {
-          type: "json_object",
+    const starters = [
+      { role: "developer", content: protocol },
+      // Add prompts for each extension enabled
+      ...extensions.map((extension) => extension["prompt"]),
+      { role: "developer", content: systemPrompt },
+      { role: "user", content: userMessage },
+      { role: "user", content: "<pass />" },
+    ];
+
+    const previousMessages = history.reduce(
+      (prev, { content, turnExecutionResults }) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: JSON.stringify(content, null, 2),
         },
-      });
+        {
+          role: "user",
+          content: JSON.stringify(turnExecutionResults, null, 2),
+        },
+      ],
+      []
+    );
 
-      if (response.choices.length == 0) {
-        return undefined;
-      }
-
-      const message = response.choices[0].message;
-      console.info({ message });
-      return JSON.parse(message.content);
-    };
-
-    const getConversationHistory = () => {
-      const starters = [
-        { role: "developer", content: protocol },
-        // Add prompts for each extension enabled
-        ...[...this.extensions].map((extension) => extension["prompt"]),
-        { role: "developer", content: systemPrompt },
-        { role: "user", content: userMessage },
-        { role: "user", content: "<pass />" },
-      ];
-      const previousMessages = history.reduce(
-        (prev, { content, turnExecutionResults }) => [
-          ...prev,
+    const closingPrompts = readyToGenerate
+      ? [
           {
-            role: "assistant",
-            content: JSON.stringify(content, null, 2),
+            role: "developer",
+            content: protocolClosingPrompt,
           },
           {
             role: "user",
-            content: JSON.stringify(turnExecutionResults, null, 2),
+            content: "<respond />",
           },
-        ],
-        []
-      );
-      const closingPrompts = readyToGenerate
-        ? [
-            {
-              role: "developer",
-              content: protocolClosingPrompt,
-            },
-            {
-              role: "user",
-              content: "<respond />",
-            },
-          ]
-        : [];
-      formatPrompt &&
-        closingPrompts.push({
-          role: "developer",
-          content: formatPrompt,
-        });
-      return [...starters, ...previousMessages, ...closingPrompts];
-    };
+        ]
+      : [];
 
-    const toggleReadyToGenerate = () => {
-      readyToGenerate = true;
-    };
+    formatPrompt &&
+      closingPrompts.push({
+        role: "developer",
+        content: formatPrompt,
+      });
 
+    return [...starters, ...previousMessages, ...closingPrompts];
+  };
+
+  #toggleReadyToGenerate = () => {
+    readyToGenerate = true;
+  };
+
+  /**
+   * Executes a user utterance using the Protocol System V2.
+   * @param   {Object}           props
+   * @param   {string}           props.systemPrompt Original system prompt.
+   * @param   {string}           props.userMessage  An initial user message to kick off orchestration.
+   * @param   {string|undefined} props.formatPrompt Formatting instructions for the final response.
+   * @returns {Promise<string>}
+   */
+  async execute(props) {
     /**
      * The execution loop allows chain of thought
      */
     do {
       const turnExecutionResults = [];
-      const content = await execute(getConversationHistory());
+      const content = await this.#execute(this.#getConversationHistory(props));
 
       if (!content) {
         throw Error("Internal problem. Missing response from LLM Service");
@@ -142,7 +149,7 @@ export class Executor {
             }
 
             case "ready": {
-              toggleReadyToGenerate();
+              this.#toggleReadyToGenerate();
               break;
             }
 
