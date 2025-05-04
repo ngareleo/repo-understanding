@@ -17,6 +17,6 @@
         "openai": "^4.91.0"
     }, 
     "prettier": {
-        "useTabs": true
+        "tabWidth": 3
     }
 }
