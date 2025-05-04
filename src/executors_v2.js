@@ -13,6 +13,7 @@ export class Executor {
   readyToGenerate = false;
   history = [];
   extensions = new Set();
+  internalState = {};
 
   /**
    * Register a Protocol System extension.
@@ -113,6 +114,12 @@ export class Executor {
    * @returns {Promise<string>}
    */
   async execute(props) {
+    const state = (id) => this.internalState[id];
+    const updateState = (id, cb) => {
+      this.internalState[id] = cb(this.internalState[id]);
+    };
+    const resolve = (directive) => {};
+
     /**
      * The execution loop allows chain of thought
      */
@@ -166,6 +173,8 @@ export class Executor {
             extension.handler({
               commands,
               executionBuffer: turnExecutionResults,
+              state,
+              updateState,
             });
           }
         }
@@ -214,25 +223,51 @@ export const fsExtension = {
 export const thinkingExtension = {
   name: "thinking",
   prompt: Get_Thinking_Extension(),
-  handler: async ({ commands, executionBuffer = [] }) => {
+  handler: async ({ commands, updateState, executionBuffer, state }) => {
     for (const command of commands) {
       switch (command["utility-name"]) {
         case "start_thinking": {
+          updateState("thinking", (prev) => ({
+            ...prev,
+            mode: "thinking",
+          }));
           break;
         }
         case "send_report": {
+          const [report] = command["args"];
+          updateState("thinking", (prev) => ({ ...prev, report }));
           break;
         }
         case "push_step": {
+          const [step] = command["args"];
+          updateState("thinking", (prev) => ({
+            ...prev,
+            steps: [...(prev.steps || []), step],
+          }));
           break;
         }
         case "commit_steps": {
+          updateState("thinking", (prev) => ({
+            ...prev,
+            status: "sealed",
+          }));
           break;
         }
         case "peek_steps": {
+          executionBuffer.push(
+            `
+              <reply name="peek_steps" args="[]"/>
+                ${JSON.stringify(state("thinking")["steps"], null, 2)}
+              </reply />
+          `
+          );
           break;
         }
         case "end_thinking": {
+          updateState("thinking", (prev) => ({
+            ...prev,
+            mode: "execution",
+          }));
           break;
         }
       }
