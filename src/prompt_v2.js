@@ -118,7 +118,7 @@ export const Get_Protocol_System_Prompt = () => `
 - <reply />    - The Protocol sends a reply to a utility invocation. <reply name="{name of the utility}">{utility results}</reply>. 
 `;
 
-export const Get_File_Extension = () => `
+export const Get_Fs_Extension = () => `
 # Protocol File Extension
 - The ${protocol} has enabled the file system extension. This extension allows you to interact with a virtual file system on the ${system}.
 - The name of this extension is "fs".

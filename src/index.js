@@ -6,10 +6,17 @@ import thinkPlanExecuteExecution from "./think_plan_execute.js";
 
 async function main() {
   const project = process.argv[2];
+  const { v1: repoUnderstandingV1, v2: repoUnderstandingV2 } =
+    await repoUnderstanding();
 
   switch (project) {
     case "repo": {
-      await repoUnderstanding();
+      await repoUnderstandingV1();
+      break;
+    }
+
+    case "repoV2": {
+      await repoUnderstandingV2();
       break;
     }
 
