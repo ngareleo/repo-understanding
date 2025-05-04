@@ -2,6 +2,8 @@ const protocol = "'Protocol'";
 const token = "'Protocol-Messaging-Token'";
 const message = "'Protocol-JSON-Message'";
 const directive = "'Protocol-Directive'";
+const extensions = "'Protocol-Extensions'";
+const system = "'Protocol-System'";
 const pass = "<pass />";
 const respond = "<respond />";
 const stepPlan = "'Step Plan'";
@@ -9,58 +11,73 @@ const taskAnalysisReport = "'Task Analysis Report'";
 const thinkingExtension = "'thinking extension'";
 const thinkingPhase = "'thinking phase'";
 const respondingPhase = "'responding phase'";
+const finalResponse = "'final-response'";
 
 /**
  * The prompt familiarizes the LLM with the 'Protocol' which is the foundation of the messaging system between us and the llm
  */
 export const Get_Protocol_System_Prompt = () => `
 # The Protocol
-
-## Protocol Rules
-- The Protocol is a messaging system you can refer to to gain context on your tasks.
-- The Protocol requires that you first create a plan of execution and your goal should be to collect at much context as needed.
+- The ${protocol} is a messaging system you can refer to gain context on your tasks.
+- The ${protocol} requires that you first create a plan of execution and your goal should be to collect at much context as needed.
 - After you have enough context, you will send a 'final response' to fulfil the task.
 - The Protocol grants you a set of utilities. 
-- Utilities allow you to access information that's on the Protocol and to interface with the protocol .
-- You are encouraged to make use of tools to help acomplish your tasks.
-- In order to invoke a tool you need to send a VALID ${message}.
-- Here is an example of one 'Protocol-JSON-Message'. The example shows a message attempting to read a file on the Protocol-System at 'pathToFile':
+- Utilities allow you to access information that's on the Protocol and to interface with the ${protocol}.
+- You are encouraged to make use of utilities to help fulfil the user's tasks.
+
+## Terminology
+- ${message} are messages you pass to the ${protocol} to perform actions like invoking utilities. We will refer to them as "messages".
+- ${directive} are a mechanism through which the ${protocol} sends messages and signals to you. We will refer to them as "directives".
+- ${token} allow you to send ${message}. We will refer to them as "tokens".
+- ${extensions} are extra instructions that allow you to do specific actions on the ${protocol}. We will refer to them as "extensions".
+
+## Protocol Rules
+- You invoke utilities by sending VALID message.
+- The ${protocol} will respond to each utility invocation using directives.
+- Here is an example of one ${message}. 
+- The following example shows a message signalling to the ${protocol} that you are ready to send the ${finalResponse} :
+
 \`\`\`
 {
     status: "OKAY",
+    target: "main",
     message: "",
     commands: [
-        { "utility-name": "read_file", args: ["pathToFile"] },
+        { "utility-name": "ready", args: ["pathToFile"] },
         { "utility-name": "pass_token", args: [] },
     ]
 }
 \`\`\`
-- You should not send any ${message} to the ${protocol} until the ${protocol} sends you the <pass /> directive. 
+- You should not send any ${message} until the ${protocol} sends you the ${pass} directive. 
 - The ${pass} directive grants you a ${token} which allows you to invoke utilities.
 - You can only send one ${message} at a time and immediately after, you're expected by the ${protocol} to pass give back the token by invoking the "pass_token" utility.
 - You will not invoke any more tools until you see another ${pass} directive.
 - If you send more that one message, only the first message is accepted by the ${protocol}. All subsequent messages are ignored.
 - ${directive} are a mechanism through which the ${protocol} sends messages and signals to you.
 - You must honor the directives system.
+- ${extensions} are extra instructions from the ${protocol} that allow you to perform extra actions on the ${system} like accessing the file system. etc
+- Each extension has a name that you will use to refer to the extension.
+- Extensions have extra utilities that you can invoke to perform extra actions that the base protocol doesn't have.
 
-## The ${message}
-- The ${protocol} requires that you send ${message}'s to invoke utilities.
-- Remember that after submitting ONE ${message} you MUST pass the token otherwise your messages won't reach the other end.
+## The 'Protocol-JSON-Message'
+- The ${protocol} requires that you send a ${message} to invoke utilities.
+- Remember to pass back the token.
+- Remember that any messages sent without a token are ignored.
 
-### ${message} Schema
+### 'Protocol-JSON-Message' Schema
 {
     "status": \`An indication of your ability to execute the task. Can be "OKAY" or "ERROR".</status>\`,
+    "target": \`The extension the utility is targeting. If you are not targeting an extension use "main" as the target.\`, 
     "message": \`
-    // Use this field to pass back a message to the ${protocol}.
+    // Use this field to pass back a message to the 'Protocol'.
     // You can use this field in your messages to state your reasoning behind tool invocations.
     // Incase 'status' is "ERROR" you MUST provide a reason here.
     \`,
     "commands": \`
     // A list of utilities you chose to invoke.
     // The order of utility invocation matters. 
-    // Because of the limitations of the token system (you send only one ${message} and pass the token), try to batch utility invocations
     // An entry in the list must follow the following schema:
-    //    <utility-name>The utility you want to invoke.</utility-name>
+    //   <utility-name>The utility you want to invoke.</utility-name>
     //   <args>A list of argument values to pass to the utility. _The list is order sensitive_</args>
     \`,
     "final-response": \`
@@ -70,36 +87,40 @@ export const Get_Protocol_System_Prompt = () => `
     \`
 }
 
+
 ## Utilities
 - Maximize use of utilities to gain context on your tasks.
 - You are free to invoke as many utilities and as many times as possible.
-- Here are the supported utilities:
 
 ### Available utilities
-- get_file_structure(pathToProject). Should give you a string representation of the project at \`pathToProject\`.
-- read_file(pathToFile). Should give you the contents of a file at 'pathToFile'.
 - ready(). Should send a request for permission to provide the final response to the user.
-- pass_token(). (REQUIRED). You must invoke this utility for every ${message}.
+- pass_token(). Should pass the 'Protocol-Messaging-Token' back to the Protocol. Must be invoked to allow the protocol to respond to your utilities.
 
 ## Directives
-- Used by the ${protocol} to send you signals and messages 
+- Used by the 'Protocol' to send you signals and messages 
 
 ### Supported directives:
-- <pass />. The Protocol has passed the ${token} and you can send a message.
+- <pass />. The Protocol has passed you the 'Protocol-Messaging-Token' and you can send a message.
 - <respond />. The Protocol has allowed you to pass the 'final response'.
 - <message>{message contents}</message>. The Protocol sends you messages in "message contents".
-- <reply>{utility rely}</reply>. The Protocol sends a reply to a tool invocation in "utility reply".
+- <reply name="{name of the utility}">{utility rely}</reply>. The Protocol sends a reply to a tool invocation in "utility reply".
+`;
 
-## Commandments
-- You must follow each of the following laws:
-1. Only send one ${message}.
-2. Pass token after sending a ${message}.
-3. Only send a ${message} after you receive the ${pass} directive.
-4. Only send the 'final response' after you receeive the ${respond} directive.
+export const Get_File_Extension = () => `
+# Protocol File Extension { "target": "file" }
+- The ${protocol} has enabled the file extensions. This extension allows you to interact with a file system.
+
+# Extension Instructions
+- You can read a file from the file system by invoking the "get_file(pathToFile)" where pathToFile is a path to a file.
+- You can read the file structure by invoking the "get_file_structure(pathToProject, depth=infinity)" where is the base path to start the tree from and the depth is the number of nested levels.
+
+# Additional Utilities
+- get_file_structure(pathToProject). Should give you a string representation of the project at \`pathToProject\`.
+- read_file(pathToFile). Should give you the contents of a file at 'pathToFile'. If the file doesn't exist it triggers a <message/> directive with error message.
 `;
 
 export const Get_Thinking_Prompt = () => `
-# Protocol Thinking Extension
+# Protocol Thinking Extension { target: "thinking" }
 - The ${protocol} has enabled the ${thinkingExtension}. This extension will allow you to analyze the user's ask to be able to provide quality responses.
 - Once you're given the ${token} for the first time (When you see the ${pass} directive for the first time), you can invoke the "start_thinking" utility.
 - This utility marks the start of the ${thinkingPhase}.
@@ -120,6 +141,7 @@ export const Get_Thinking_Prompt = () => `
 \`\`\`
 {
     status: "OKAY",
+    target: "thinking",
     message: "",
     commands: [
         { "utility-name": "push_step", args: ["Check dependencies"] },
