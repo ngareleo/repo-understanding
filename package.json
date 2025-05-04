@@ -16,7 +16,5 @@
         "dotenv": "^16.4.7",
         "openai": "^4.91.0"
     }, 
-    "prettier": {
-        "tabWidth": 3
-    }
+    "prettier": {}
 }

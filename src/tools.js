@@ -6,14 +6,14 @@ import { DirectoryWalk, readFileContent } from "./utils.js";
  * @returns                   Line separated list of file paths within project
  */
 export async function get_file_structure(pathToFile) {
-   return new Promise((resolve, reject) => {
-      let files = [];
-      new DirectoryWalk()
-         .on("err", (err) => reject(err))
-         .on("found", ([path]) => files.push(path))
-         .walkSync(pathToFile);
-      resolve(files.join("\n"));
-   });
+  return new Promise((resolve, reject) => {
+    let files = [];
+    new DirectoryWalk()
+      .on("err", (err) => reject(err))
+      .on("found", ([path]) => files.push(path))
+      .walkSync(pathToFile);
+    resolve(files.join("\n"));
+  });
 }
 
 /**
@@ -22,13 +22,13 @@ export async function get_file_structure(pathToFile) {
  * @returns {Promise<string>}            Contents of file
  */
 export async function read_file(pathToFile) {
-   return new Promise((resolve, reject) => {
-      readFileContent(pathToFile, (err, contents) => {
-         if (err) {
-            reject(err);
-            return;
-         }
-         resolve(contents);
-      });
-   });
+  return new Promise((resolve, reject) => {
+    readFileContent(pathToFile, (err, contents) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(contents);
+    });
+  });
 }
