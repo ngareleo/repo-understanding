@@ -19,11 +19,10 @@ export class Executor {
    * @param   {Object}           args
    * @param   {string}           args.name     The name of the extension.
    * @param   {Function()}       args.handler  A routine to be handle utility invocations
-   * @returns {Promise<string>}
    */
   extension(extension) {
     extensions.add(extension);
-    return self;
+    return this;
   }
 
   #execute = async (messages) => {
@@ -240,8 +239,3 @@ export const thinkingExtension = {
     }
   },
 };
-
-/**
- * Based off v2 prompt.
- */
-export async function main() {}
