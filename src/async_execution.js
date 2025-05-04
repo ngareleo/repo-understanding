@@ -14,24 +14,24 @@ const client = new OpenAI({ apiKey });
  * @returns                           A readable stream of an llm's response.
  */
 const llmStream = async ({ systemPrompt, userMessage }) => {
-  const protocolPrompt = Get_AsyncProtocol_System_Prompt();
+	const protocolPrompt = Get_AsyncProtocol_System_Prompt();
 
-  const response = await client.responses.create({
-    model: "gpt-4o",
-    input: [
-      { role: "developer", content: protocolPrompt },
-      { role: "developer", content: systemPrompt },
-      { role: "user", content: userMessage },
-      { role: "user", content: "<pass />" },
-    ],
-    store: true,
-    stream: true,
-    text: {
-      format: { type: "json_object" },
-    },
-  });
+	const response = await client.responses.create({
+		model: "gpt-4o",
+		input: [
+			{ role: "developer", content: protocolPrompt },
+			{ role: "developer", content: systemPrompt },
+			{ role: "user", content: userMessage },
+			{ role: "user", content: "<pass />" },
+		],
+		store: true,
+		stream: true,
+		text: {
+			format: { type: "json_object" },
+		},
+	});
 
-  return response.toReadableStream();
+	return response.toReadableStream();
 };
 
 /**
@@ -41,17 +41,17 @@ const llmStream = async ({ systemPrompt, userMessage }) => {
  * @returns {Transform}
  */
 const createReplyChunker = (options) => {
-  return new Transform({
-    ...options,
-    objectMode: true,
-    transform(chunk, _, cb) {
-      const json = JSON.parse(new Buffer.from(chunk).toString());
-      if (json["type"] === "response.output_text.done") {
-        this.push(json["text"]);
-      }
-      cb();
-    },
-  });
+	return new Transform({
+		...options,
+		objectMode: true,
+		transform(chunk, _, cb) {
+			const json = JSON.parse(new Buffer.from(chunk).toString());
+			if (json["type"] === "response.output_text.done") {
+				this.push(json["text"]);
+			}
+			cb();
+		},
+	});
 };
 
 /**
@@ -61,12 +61,12 @@ const createReplyChunker = (options) => {
  * @returns {Transform}
  */
 const createLogger = (options) => {
-  return new PassThrough({ objectMode: true, ...options }).on(
-    "data",
-    (chunk) => {
-      console.log(JSON.stringify(JSON.parse(chunk), null, 2));
-    }
-  );
+	return new PassThrough({ objectMode: true, ...options }).on(
+		"data",
+		(chunk) => {
+			console.log(JSON.stringify(JSON.parse(chunk), null, 2));
+		}
+	);
 };
 
 /**
@@ -87,13 +87,13 @@ const createLogger = (options) => {
  * I'll start another side project using assistant api
  */
 export default async function main() {
-  const systemPrompt = getRepoSysPrompt("sample/control-tower");
-  const userMessage = process.argv[3] || "What is the point of this repo?";
-  const stream = await llmStream({ systemPrompt, userMessage });
-  pipeline(
-    stream,
-    createReplyChunker({ objectMode: true }),
-    createLogger({ objectMode: true }),
-    (err) => err && console.error({ err })
-  );
+	const systemPrompt = getRepoSysPrompt("sample/control-tower");
+	const userMessage = process.argv[3] || "What is the point of this repo?";
+	const stream = await llmStream({ systemPrompt, userMessage });
+	pipeline(
+		stream,
+		createReplyChunker({ objectMode: true }),
+		createLogger({ objectMode: true }),
+		(err) => err && console.error({ err })
+	);
 }

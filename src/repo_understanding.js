@@ -33,24 +33,24 @@ export const closingPrompt = `
 `;
 
 export default async function main() {
-  return {
-    v1: async () => {
-      const response = await linearLLMExecutor({
-        systemPrompt: getRepoSysPrompt("sample/control-tower"),
-        userMessage:
-          "Write a read me for this repository. Give me as much detail as you can",
-      });
+	return {
+		v1: async () => {
+			const response = await linearLLMExecutor({
+				systemPrompt: getRepoSysPrompt("sample/control-tower"),
+				userMessage:
+					"Write a read me for this repository. Give me as much detail as you can",
+			});
 
-      console.log({ response });
-    },
-    v2: async () => {
-      const response = await linearExtendedLLMExecutor({
-        systemPrompt: getRepoSysPrompt("sample/control-tower"),
-        userMessage:
-          "Write a read me for this repository. Give me as much detail as you can",
-      });
+			console.log({ response });
+		},
+		v2: async () => {
+			const response = await linearExtendedLLMExecutor({
+				systemPrompt: getRepoSysPrompt("sample/control-tower"),
+				userMessage:
+					"Write a read me for this repository. Give me as much detail as you can",
+			});
 
-      console.log({ response });
-    },
-  };
+			console.log({ response });
+		},
+	};
 }
