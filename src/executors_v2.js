@@ -1,13 +1,14 @@
 import {
+  Get_Closing_Prompt,
   Get_Fs_Extension,
   Get_Protocol_System_Prompt as Get_Protocol_System_V2Prompt,
-  Get_Thinking_Prompt,
+  Get_Thinking_Extension,
 } from "./prompt_v2";
 
 const apiKey = process.env.OPENAI_KEY;
 const client = new OpenAI({ apiKey });
 
-class Executor {
+export class Executor {
   executing = true;
   readyToGenerate = false;
   history = [];
@@ -20,7 +21,7 @@ class Executor {
    * @param   {Function()}       args.handler  A routine to be handle utility invocations
    * @returns {Promise<string>}
    */
-  extend(extension) {
+  static extend(extension) {
     this.extensions.add(extension);
     return self;
   }
@@ -33,8 +34,9 @@ class Executor {
    * @param   {string|undefined} args.formatPrompt Formatting instructions for the final response.
    * @returns {Promise<string>}
    */
-  async execute({ systemPrompt, userMessage, formatPrompt }) {
+  static async execute({ systemPrompt, userMessage, formatPrompt }) {
     const protocol = Get_Protocol_System_V2Prompt();
+    const protocolClosingPrompt = Get_Closing_Prompt();
 
     /**
      * Performs the actual LLM cal;
@@ -61,6 +63,8 @@ class Executor {
     const getConversationHistory = () => {
       const starters = [
         { role: "developer", content: protocol },
+        // Add prompts for each extension enabled
+        ...[...this.extensions].map((extension) => extension["prompt"]),
         { role: "developer", content: systemPrompt },
         { role: "user", content: userMessage },
         { role: "user", content: "<pass />" },
@@ -79,30 +83,24 @@ class Executor {
         ],
         []
       );
-      return [
-        ...starters,
-        ...previousMessages,
-        ...(readyToGenerate
-          ? [
-              {
-                role: "user",
-                content: "<respond />",
-              },
-              {
-                role: "developer",
-                content: closingPrompt,
-              },
-              ...(formatPrompt
-                ? [
-                    {
-                      role: "developer",
-                      content: formatPrompt,
-                    },
-                  ]
-                : []),
-            ]
-          : []),
-      ];
+      const closingPrompts = readyToGenerate
+        ? [
+            {
+              role: "developer",
+              content: protocolClosingPrompt,
+            },
+            {
+              role: "user",
+              content: "<respond />",
+            },
+          ]
+        : [];
+      formatPrompt &&
+        closingPrompts.push({
+          role: "developer",
+          content: formatPrompt,
+        });
+      return [...starters, ...previousMessages, ...closingPrompts];
     };
 
     const toggleReadyToGenerate = () => {
@@ -209,7 +207,7 @@ export const fsExtension = {
 
 export const thinkingExtension = {
   name: "thinking",
-  prompt: Get_Thinking_Prompt(),
+  prompt: Get_Thinking_Extension(),
   handler: async ({ commands, executionBuffer = [] }) => {
     for (const command of commands) {
       switch (command["utility-name"]) {

@@ -132,7 +132,7 @@ export const Get_Fs_Extension = () => `
 - read_file(pathToFile)             - Should give you the contents of a file at 'pathToFile'. If the file doesn't exist the ${protocol} will send error details through the  <message/> directive.
 `;
 
-export const Get_Thinking_Prompt = () => `
+export const Get_Thinking_Extension = () => `
 # Protocol Thinking Extension.
 - The ${protocol} has enabled the ${thinkingExtension}. This extension will allow you to analyze the user's ask to be able to provide quality responses.
 - The name of the extension is 'thinking'.
@@ -190,7 +190,7 @@ export const Get_Thinking_Prompt = () => `
  * Closing prompt instructs the LLM regarding quality of response
  * @returns The prompt
  */
-export const Get_ClosingPrompt = () => `
+export const Get_Closing_Prompt = () => `
 Now that you have enough context to answer the user's question, you are free to respond. 
 
 # Response Instructions
