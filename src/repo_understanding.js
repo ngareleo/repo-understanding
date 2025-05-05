@@ -1,4 +1,5 @@
-import { linearLLMExecutor } from "./executors.js";
+import { linearLLMExecutor, linearExtendedLLMExecutor } from "./executors.js";
+import { Executor, fsExtension, thinkingExtension } from "./executors_v2.js";
 
 export const getRepoSysPrompt = (pathToRepo) => `
 # Your Objective
@@ -33,10 +34,27 @@ export const closingPrompt = `
 `;
 
 export default async function main() {
-  const response = await linearLLMExecutor({
-    systemPrompt: getRepoSysPrompt("sample/control-tower"),
-    userMessage:
-      "Write a read me for this repository. Give me as much detail as you can",
-  });
-  console.log({ response });
+  return {
+    v1: async () => {
+      const response = await linearLLMExecutor({
+        systemPrompt: getRepoSysPrompt("sample/control-tower"),
+        userMessage:
+          "Write a read me for this repository. Give me as much detail as you can",
+      });
+
+      console.log({ response });
+    },
+    v2: async () => {
+      const response = await new Executor()
+        .extension("fs", fsExtension)
+        .extension("thinking", thinkingExtension)
+        .execute({
+          systemPrompt: getRepoSysPrompt("sample/control-tower"),
+          userMessage:
+            "Write a read me for this repository. Give me as much detail as you can",
+        });
+
+      console.log({ response });
+    },
+  };
 }
